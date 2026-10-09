@@ -4,6 +4,8 @@
 
 import { createMatrixController } from './matrix.js';
 import { createHelpController } from './help.js';
+import { createStatsController } from './stats.js';
+import { createIndicatorsController } from './indicators.js';
 
 (function () {
   'use strict';
@@ -113,7 +115,6 @@ import { createHelpController } from './help.js';
   let dimmingBg = null;
   let styleElement = null;
   let inputObserver = null;
-  let fontSizeIndicatorTimeout = null;
   let toastTimeout = null;
 
   // ─── Utils ─────────────────────────────────────────────────────────────────
@@ -347,7 +348,7 @@ import { createHelpController } from './help.js';
   function toggleTextVisibilityMode() {
     toggleSetting('isPartialMode', 'Построчное отображение');
     refreshTextView();
-    updateIndicators();
+    indicatorsController.updateIndicators();
   }
 
   // ─── Progress bar (both modes) ─────────────────────────────────────────────
@@ -410,91 +411,30 @@ import { createHelpController } from './help.js';
   function toggleProgressBar() {
     toggleSetting('showProgress', 'Прогресс-бар');
     updateProgressBar();
-    updateIndicators();
-  }
-
-  // ─── Race stats (floating) ─────────────────────────────────────────────────
-
-  // The site status panel is covered by the dimming, so speed and errors are redrawn above the block
-  const STATS_ID = 'kg-stats';
-  const SPEED_SCALE = { maxSpeed: 1000, hueRange: 130, cells: 16 };
-  const ERRORS_HIT_ANIMATION = [{ transform: 'scale(1.3)', filter: 'brightness(1.6)' }, { transform: 'scale(1)', filter: 'none' }];
-  const ERRORS_HIT_DURATION = 350;
-
-  function createStatsElement() {
-    const cells = [...Array(SPEED_SCALE.cells)].map(() => createElement('div', { className: 'kg-speed-cell' }));
-    return createElement('div', { id: STATS_ID },
-      createElement('div', { className: 'kg-speed' },
-        createElement('div', { className: 'kg-speed-readout' },
-          createElement('span', { className: 'kg-speed-value', textContent: '0' }),
-          createElement('span', { className: 'kg-speed-unit', textContent: 'скорость' })),
-        createElement('div', { className: 'kg-speed-bar' }, ...cells)),
-      createElement('div', { className: 'kg-errors' },
-        createElement('span', { className: 'kg-errors-value', textContent: '0' }),
-        createElement('span', { className: 'kg-errors-label', textContent: 'ошибки' })));
-  }
-
-  function ensureStatsElement() {
-    let stats = document.getElementById(STATS_ID);
-    if (stats) return stats;
-    const mainBlock = document.getElementById('main-block');
-    if (!mainBlock) return null;
-    stats = createStatsElement();
-    mainBlock.prepend(stats);
-    return stats;
-  }
-
-  const removeStats = () => document.getElementById(STATS_ID)?.remove();
-
-  const readNumber = (id) => Number.parseInt(document.getElementById(id)?.textContent, 10) || 0;
-
-  // The text is assigned only when changed: the observer of the page reacts to every DOM change
-  function setText(element, value) {
-    const text = String(value);
-    if (element.textContent === text) return false;
-    element.textContent = text;
-    return true;
-  }
-
-  function updateStats() {
-    if (!getSetting('showStats')) {
-      removeStats();
-      return;
-    }
-    const stats = ensureStatsElement();
-    if (!stats) return;
-
-    const speed = readNumber('speed-label');
-    const errors = readNumber('errors-label');
-    const ratio = clamp(speed / SPEED_SCALE.maxSpeed, 0, 1);
-    stats.style.setProperty('--kg-speed-hue', Math.round((1 - ratio) * SPEED_SCALE.hueRange));
-    setText(stats.querySelector('.kg-speed-value'), speed);
-
-    // A cell is either fully lit or off, never partially filled
-    const litCells = Math.round(ratio * SPEED_SCALE.cells);
-    stats.querySelectorAll('.kg-speed-cell').forEach((cell, index) => {
-      cell.classList.toggle('kg-speed-cell-lit', index < litCells);
-    });
-
-    const errorsBox = stats.querySelector('.kg-errors');
-    const errorsValue = errorsBox.querySelector('.kg-errors-value');
-    const previousErrors = Number(errorsValue.textContent);
-    if (setText(errorsValue, errors) && errors > previousErrors) {
-      errorsBox.animate(ERRORS_HIT_ANIMATION, ERRORS_HIT_DURATION);
-    }
-    errorsBox.classList.toggle('kg-errors-active', errors > 0);
-  }
-
-  function toggleStats() {
-    toggleSetting('showStats', 'Скорость и ошибки');
-    updateStats();
-    updateIndicators();
+    indicatorsController.updateIndicators();
   }
 
   // ─── Auto enter ────────────────────────────────────────────────────────────
 
   function toggleAutoEnterFloating() {
     toggleSetting('autoEnterFloating', 'Автовход в плавающий режим');
+    indicatorsController.updateIndicators();
+  }
+
+  function toggleCustomSettings() {
+    const modeKey = getCurrentModeKey();
+    if (!modeKey) return;
+    if (getSettingsForMode(modeKey)) {
+      removeSettingsForMode(modeKey);
+      reloadSettings();
+      saveCurrentSettings(settings);
+      applySettings();
+      showToast('Настройки режима забыты');
+    } else {
+      setSettingsForMode(modeKey, { ...settings });
+      indicatorsController.updateIndicators();
+      showToast('Настройки режима запомнены');
+    }
   }
 
   // ─── Input alignment (floating) ────────────────────────────────────────────
@@ -518,7 +458,7 @@ import { createHelpController } from './help.js';
     toggleSetting('alignInputWithFocus', 'Выравнивание ввода');
     if (getSetting('alignInputWithFocus')) alignInputWithTypeFocus();
     else resetInputAlignment();
-    updateIndicators();
+    indicatorsController.updateIndicators();
   }
 
   // ─── Theme (floating) ──────────────────────────────────────────────────────
@@ -528,13 +468,13 @@ import { createHelpController } from './help.js';
     updateStyles();
     setInputColorState(document.getElementById('inputtext'));
     handleContentChanges();
-    updateIndicators();
+    indicatorsController.updateIndicators();
   }
 
   function toggleTheme() {
     setSetting('theme', currentTheme === 'dark' ? 'light' : 'dark');
     applySettings();
-    showFontSizeIndicator(true); // Only update if present
+    indicatorsController.showFontSizeIndicator(true); // Only update if present
     showToast(`Тема: ${THEME_NAMES[currentTheme]}`);
     helpController.renderHelpPanel();
   }
@@ -602,159 +542,7 @@ import { createHelpController } from './help.js';
     setSetting('fontSize', clamp(size, FONT_SIZE.min, FONT_SIZE.max));
     applyFontSize();
     refreshTextView();
-    showFontSizeIndicator();
-  }
-
-  // ─── Indicators (both modes) ───────────────────────────────────────────────
-
-  const svgIcon = (content) => `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${content}</svg>`;
-
-  // Persistent indicators: shown while isActive() is true
-  const INDICATORS = [
-    {
-      id: 'kg-saved-indicator',
-      title: 'Применены кастомные настройки',
-      isActive: () => !!getSettingsForMode(getCurrentModeKey()),
-      icon: svgIcon(`
-        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-        <polyline points="7 3 7 8 15 8"></polyline>`)
-    },
-    {
-      id: 'kg-partial-indicator',
-      title: 'Частичное отображение текста',
-      isActive: isPartialMode,
-      icon: svgIcon(`
-        <line x1="17" y1="10" x2="3" y2="10"></line>
-        <line x1="21" y1="6" x2="3" y2="6"></line>
-        <line x1="21" y1="14" x2="3" y2="14"></line>
-        <line x1="17" y1="18" x2="3" y2="18"></line>`)
-    },
-    {
-      id: 'kg-alignment-indicator',
-      title: 'Выравнивание ввода по фокусу',
-      isActive: () => isFloatingMode && getSetting('alignInputWithFocus'),
-      icon: svgIcon(`
-        <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path>`)
-    },
-    {
-      id: 'kg-stats-indicator',
-      title: 'Скорость и ошибки',
-      isActive: () => isFloatingMode && getSetting('showStats'),
-      icon: svgIcon(`
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>`)
-    },
-    {
-      id: 'kg-progress-indicator',
-      title: 'Прогресс-бар',
-      isActive: () => getSetting('showProgress'),
-      icon: svgIcon(`
-        <rect x="2" y="9" width="20" height="6" rx="3"></rect>
-        <line x1="6" y1="12" x2="12" y2="12"></line>`)
-    },
-    {
-      id: 'kg-matrix-indicator',
-      title: 'Эффект матрицы',
-      isActive: () => isFloatingMode && getSetting('matrixEffect'),
-      icon: svgIcon(`
-        <path d="M5 3v3m0 3v4m0 3v5"/>
-        <path d="M10 6v4m0 3v3m0 3v2" opacity=".6"/>
-        <path d="M15 3v5m0 3v3m0 3v4"/>
-        <path d="M20 7v3m0 3v4m0 3v1" opacity=".6"/>
-      `)
-    },
-  ];
-
-  function getIndicatorContainer() {
-    const mainBlock = document.getElementById('main-block');
-    if (!mainBlock) return null;
-    let container = document.getElementById('kg-indicator-container');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'kg-indicator-container';
-      Object.assign(container.style, {
-        position: 'absolute',
-        right: '-35px',
-        top: '50%',
-        gap: '8px',
-        transform: 'translateY(-50%)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: '2100'
-      });
-      mainBlock.appendChild(container);
-    }
-    return container;
-  }
-
-  function applyIndicatorBaseStyles(span) {
-    const { text, background } = themes[currentTheme].input.normal;
-    Object.assign(span.style, {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '28px',
-      height: '28px',
-      backgroundColor: background,
-      color: text,
-      stroke: text
-    });
-    span.style.setProperty('border-radius', '0.2em', 'important');
-    span.style.setProperty('box-shadow', themes[currentTheme].shadowSmall, 'important');
-  }
-
-  function syncIndicator({ id, title, icon, isActive }) {
-    const container = getIndicatorContainer();
-    if (!container) return;
-    let span = document.getElementById(id);
-    if (!isActive()) {
-      span?.remove();
-      return;
-    }
-    if (!span) {
-      span = document.createElement('span');
-      span.id = id;
-      span.title = title;
-      span.innerHTML = icon;
-      container.appendChild(span);
-    }
-    applyIndicatorBaseStyles(span);
-  }
-
-  const updateIndicators = () => INDICATORS.forEach(syncIndicator);
-
-  function ensureFontImport() {
-    if (document.getElementById('kg-font-import')) return;
-    const link = document.createElement('link');
-    link.id = 'kg-font-import';
-    link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap';
-    document.head.appendChild(link);
-  }
-
-  // Temporary indicator with the current font size
-  function showFontSizeIndicator(updateOnly = false) {
-    let span = document.getElementById('kg-fontsize-indicator');
-    if (!span && updateOnly) return;
-    const container = getIndicatorContainer();
-    if (!container) return;
-    ensureFontImport();
-    if (!span) {
-      span = document.createElement('span');
-      span.id = 'kg-fontsize-indicator';
-      span.title = 'Текущий размер шрифта';
-      container.appendChild(span);
-    }
-    applyIndicatorBaseStyles(span);
-    Object.assign(span.style, { fontFamily: '"Quicksand", sans-serif', fontWeight: '600', fontSize: '1.1em' });
-    span.innerText = getFontSize();
-    if (updateOnly) return;
-    clearTimeout(fontSizeIndicatorTimeout);
-    fontSizeIndicatorTimeout = setTimeout(() => span.remove(), 3000);
+    indicatorsController.showFontSizeIndicator();
   }
 
   // ─── Dimming background (floating) ─────────────────────────────────────────
@@ -772,8 +560,10 @@ import { createHelpController } from './help.js';
     addEvent(dimmingBg, 'mousemove', (e) => {
       if (!dragStart) return;
       const level = dragStart.level + (dragStart.y - e.clientY) * DIMMING_SENSITIVITY;
-      setActiveDimmingLevel(clamp(level, 0, 100));
+      const next = clamp(level, 0, 100);
+      setActiveDimmingLevel(next);
       updateStyles();
+      indicatorsController.showNumericIndicator(Math.round(next), getSetting('matrixEffect') ? 'Затемнение матрицы' : 'Затемнение фона');
       e.preventDefault();
     });
     addEvent(dimmingBg, 'mouseup', (e) => {
@@ -789,7 +579,7 @@ import { createHelpController } from './help.js';
     toggleSetting('matrixEffect', 'Эффект матрицы');
     matrixController.updateMatrixEffect();
     updateStyles();
-    updateIndicators();
+    indicatorsController.updateIndicators();
   }
 
   // ─── Main block drag (floating) ────────────────────────────────────────────
@@ -836,12 +626,13 @@ import { createHelpController } from './help.js';
     const mainBlock = document.getElementById('main-block');
     if (!mainBlock) return;
 
-    const isOverInput = (e) => {
-      const input = document.getElementById('inputtext');
-      if (!input) return false;
-      const rect = input.getBoundingClientRect();
-      return e.clientX >= rect.left && e.clientX <= rect.right &&
-        e.clientY >= rect.top && e.clientY <= rect.bottom;
+    const shouldIgnoreDrag = (e) => {
+      const ignoreIds = ['inputtext', 'kg-stats', 'kg-indicator-container'];
+      for (const id of ignoreIds) {
+        const el = document.getElementById(id);
+        if (el && (el === e.target || el.contains(e.target))) return true;
+      }
+      return false;
     };
 
     setupDragInteraction(mainBlock, (e, data) => {
@@ -858,62 +649,7 @@ import { createHelpController } from './help.js';
       startWidth: getSetting('mainBlockWidth'),
       startTop: getSetting('mainBlockPosition'),
       blockHeight: mainBlock.offsetHeight
-    }), isOverInput);
-  }
-
-  // ─── Remember button (floating) ────────────────────────────────────────────
-
-  // Right click on input: remember or forget settings for the current mode
-  function setupRememberButton() {
-    const input = document.getElementById('inputtext');
-    if (!input) return;
-    let btn = null;
-    const removeBtn = () => {
-      btn?.remove();
-      btn = null;
-    };
-
-    addEvent(input, 'contextmenu', (e) => {
-      e.preventDefault();
-      removeBtn();
-      const modeKey = getCurrentModeKey();
-      const hasCustom = !!getSettingsForMode(modeKey);
-      const theme = themes[currentTheme];
-
-      btn = document.createElement('button');
-      btn.textContent = hasCustom ? 'Забыть' : 'Запомнить';
-      Object.assign(btn.style, {
-        position: 'absolute',
-        zIndex: '2020',
-        fontSize: '16px',
-        padding: '6px 16px',
-        background: theme.input.normal.background,
-        color: theme.input.normal.text,
-        cursor: 'pointer'
-      });
-      btn.style.setProperty('border', `2px solid ${theme.borderColor}`, 'important');
-      btn.style.setProperty('border-radius', '0.4em', 'important');
-      btn.style.setProperty('box-shadow', theme.shadowSmall, 'important');
-      btn.onmousedown = ev => ev.stopPropagation();
-      btn.onclick = (ev) => {
-        ev.preventDefault();
-        if (hasCustom) {
-          removeSettingsForMode(modeKey);
-          reloadSettings();
-          saveCurrentSettings(settings);
-          applySettings();
-        } else {
-          setSettingsForMode(modeKey, { ...settings });
-          updateIndicators();
-        }
-        removeBtn();
-      };
-      document.body.appendChild(btn);
-      btn.addEventListener('mouseleave', removeBtn);
-      const rect = btn.getBoundingClientRect();
-      btn.style.left = (e.pageX - rect.width / 2) + 'px';
-      btn.style.top = (e.pageY - rect.height / 2) + 'px';
-    });
+    }), shouldIgnoreDrag);
   }
 
 
@@ -1030,90 +766,7 @@ import { createHelpController } from './help.js';
         --kg-progress-fill: ${theme.text.focus};
       }
 
-      #${STATS_ID} {
-        position: absolute !important;
-        bottom: 100% !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        margin-bottom: 8px !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 14px !important;
-        padding: 6px 18px !important;
-        border: 2px solid ${theme.borderColor} !important;
-        border-radius: 999px !important;
-        background-color: ${theme.background} !important;
-        box-shadow: ${theme.shadow} !important;
-        font-family: Tahoma, Arial, sans-serif !important;
-        white-space: nowrap !important;
-        user-select: none !important;
-        --kg-speed-lightness: ${isDark ? '65%' : '40%'};
-        color: hsl(var(--kg-speed-hue, 130) 70% var(--kg-speed-lightness)) !important;
-        transition: color 0.25s !important;
-      }
-
-      #${STATS_ID} .kg-speed {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-
-      #${STATS_ID} .kg-speed-readout,
-      #${STATS_ID} .kg-errors {
-        display: flex;
-        align-items: baseline;
-        gap: 5px;
-      }
-
-      #${STATS_ID} .kg-speed-value,
-      #${STATS_ID} .kg-errors-value {
-        font-size: 22px;
-        font-weight: 700;
-        line-height: 1;
-        font-variant-numeric: tabular-nums;
-      }
-
-      #${STATS_ID} .kg-speed-value {
-        min-width: 3ch;
-        text-align: right;
-      }
-
-      #${STATS_ID} .kg-speed-unit,
-      #${STATS_ID} .kg-errors-label {
-        font-size: 12px;
-        color: ${theme.text.after};
-      }
-
-      #${STATS_ID} .kg-speed-bar {
-        display: flex;
-        gap: 2px;
-        width: 128px;
-      }
-
-      #${STATS_ID} .kg-speed-cell {
-        flex: 1;
-        height: 4px;
-        border-radius: 1px;
-        background-color: ${theme.borderColor};
-      }
-
-      #${STATS_ID} .kg-speed-cell-lit {
-        background-color: currentColor;
-      }
-
-      #${STATS_ID} .kg-errors {
-        padding-left: 14px;
-        border-left: 2px solid ${theme.borderColor};
-        color: ${theme.text.after};
-      }
-
-      #${STATS_ID} .kg-errors-value {
-        transition: color 0.2s;
-      }
-
-      #${STATS_ID} .kg-errors-active .kg-errors-value {
-        color: ${theme.text.error};
-      }
+      ${statsController.getStatsCss(theme, isDark)}
 
       #inputtextblock {
         display: flex !important;
@@ -1179,6 +832,38 @@ import { createHelpController } from './help.js';
     document.getElementById('kg-inputtext-selection-style')?.remove();
   }
 
+  // ─── Stats controller (see stats.js) ───────────────────────────────────────
+
+  const statsController = createStatsController({
+    createElement,
+    getSetting,
+    toggleSetting,
+    clamp,
+    updateIndicators: () => indicatorsController.updateIndicators()
+  });
+
+  // ─── Indicators controller (see indicators.js) ─────────────────────────────
+
+  const indicatorsController = createIndicatorsController({
+    themes,
+    getCurrentTheme: () => currentTheme,
+    isFloatingMode: () => isFloatingMode,
+    getSetting,
+    getSettingsForMode,
+    getCurrentModeKey,
+    isPartialMode,
+    toggleTextVisibilityMode,
+    toggleInputAlignment,
+    toggleStats: () => statsController.toggleStats(),
+    toggleProgressBar,
+    toggleMatrixEffect,
+    toggleTheme,
+    toggleAutoEnterFloating,
+    toggleCustomSettings,
+    getFontSize,
+    THEME_NAMES
+  });
+
   // ─── Help controller (see help.js) ─────────────────────────────────────────
 
   const helpController = createHelpController({
@@ -1186,8 +871,8 @@ import { createHelpController } from './help.js';
     readStorage,
     clamp,
     onOff,
-    svgIcon,
-    applyIndicatorBaseStyles,
+    svgIcon: indicatorsController.svgIcon,
+    applyIndicatorBaseStyles: indicatorsController.applyIndicatorBaseStyles,
     themes,
     getCurrentTheme: () => currentTheme,
     getSetting,
@@ -1217,13 +902,12 @@ import { createHelpController } from './help.js';
 
     createDimmingBackground();
     setupMainBlockDrag();
-    setupRememberButton();
 
     setInputColorState(inputtext);
     observeInput();
 
     handleContentChanges();
-    updateIndicators();
+    indicatorsController.updateIndicators();
     matrixController.updateMatrixEffect();
 
     // Enable input color transition after the first paint
@@ -1238,11 +922,11 @@ import { createHelpController } from './help.js';
     dimmingBg = null;
     matrixController.destroyMatrix();
     document.getElementById('kg-fontsize-indicator')?.remove();
-    removeStats();
+    statsController.removeStats();
     resetStyles();
     isFloatingMode = false;
     updateStyles();
-    updateIndicators();
+    indicatorsController.updateIndicators();
     // Native mode keeps the line-by-line view and the progress bar
     handleContentChanges();
     helpController.renderHelpPanel();
@@ -1260,7 +944,7 @@ import { createHelpController } from './help.js';
       applyFontSize();
       applyTypeblockBorder();
       alignInputWithTypeFocus();
-      updateStats();
+      statsController.updateStats();
     }
     refreshTextView();
     helpController.syncHelpAnchor();
@@ -1276,7 +960,7 @@ import { createHelpController } from './help.js';
     KeyP: { action: toggleProgressBar },
     KeyM: { action: toggleMatrixEffect, floatingOnly: true },
     KeyH: { action: helpController.toggleHelpPanel },
-    KeyS: { action: toggleStats, floatingOnly: true },
+    KeyS: { action: () => statsController.toggleStats(), floatingOnly: true },
     KeyT: { action: toggleTheme, floatingOnly: true },
     KeyQ: { action: toggleInputAlignment, floatingOnly: true }
   };
@@ -1311,6 +995,11 @@ import { createHelpController } from './help.js';
 
   // Double click: on the input toggles floating mode, on the text block toggles text view
   function onDblclick(e) {
+    // Ignore interactive overlays (stats, indicator buttons)
+    const ignore = document.getElementById('kg-stats');
+    const indicators = document.getElementById('kg-indicator-container');
+    if (ignore?.contains(e.target) || indicators?.contains(e.target)) return;
+
     const textArea = document.getElementById(isFloatingMode ? 'main-block' : 'typetext');
     if (e.target === document.getElementById('inputtext')) toggleFloatingMode();
     else if (settings && textArea?.contains(e.target)) toggleTextVisibilityMode();
@@ -1389,7 +1078,7 @@ import { createHelpController } from './help.js';
           helpController.restoreHelpPanel();
         }
         if (getSetting('autoEnterFloating')) enterFloatingMode();
-        updateIndicators();
+        indicatorsController.updateIndicators();
       }
       handleContentChanges();
     };
