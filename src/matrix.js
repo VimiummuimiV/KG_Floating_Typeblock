@@ -97,7 +97,7 @@ export function createMatrixController({
       left: '0',
       width: '100vw',
       height: '100vh',
-      zIndex: '1999',
+      zIndex: '2000',
       pointerEvents: 'none',
       opacity: MATRIX.opacity
     });
