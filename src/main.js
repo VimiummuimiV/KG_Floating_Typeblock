@@ -624,7 +624,7 @@ import { createButtonsController } from './buttons.js';
     if (!mainBlock) return;
 
     const shouldIgnoreDrag = (e) => {
-      const ignoreIds = ['inputtext', 'kg-stats', 'kg-stats-wrap', 'kg-buttons'];
+      const ignoreIds = ['inputtext', 'kg-stats', 'kg-stats-wrap', 'kg-buttons', 'kg-buttons-wrap'];
       for (const id of ignoreIds) {
         const el = document.getElementById(id);
         if (el && (el === e.target || el.contains(e.target))) return true;
@@ -996,7 +996,7 @@ import { createButtonsController } from './buttons.js';
   function onDblclick(e) {
     // Ignore interactive overlays (stats, buttons)
     const ignore = document.getElementById('kg-stats-wrap') || document.getElementById('kg-stats');
-    const indicators = document.getElementById('kg-buttons');
+    const indicators = document.getElementById('kg-buttons-wrap') || document.getElementById('kg-buttons');
     if (ignore?.contains(e.target) || indicators?.contains(e.target)) return;
 
     const textArea = document.getElementById(isFloatingMode ? 'main-block' : 'typetext');

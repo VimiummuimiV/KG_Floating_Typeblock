@@ -95,21 +95,31 @@ export function createButtonsController({
     const mainBlock = document.getElementById('main-block');
     if (!mainBlock) return null;
 
+    let wrap = document.getElementById('kg-buttons-wrap');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.id = 'kg-buttons-wrap';
+      Object.assign(wrap.style, {
+        position: 'absolute',
+        left: '0',
+        right: '0',
+        bottom: '-40px',
+        zIndex: '1'
+      });
+      mainBlock.appendChild(wrap);
+    }
+
     let shell = document.getElementById('kg-buttons');
     if (!shell) {
       shell = document.createElement('div');
       shell.id = 'kg-buttons';
       Object.assign(shell.style, {
-        position: 'absolute',
-        left: '0',
-        right: '0',
-        bottom: '-40px',
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        zIndex: '1'
+        width: '100%'
       });
-      mainBlock.appendChild(shell);
+      wrap.appendChild(shell);
     }
 
     let left = document.getElementById('kg-buttons-left');
@@ -138,7 +148,7 @@ export function createButtonsController({
       shell.appendChild(right);
     }
 
-    return { shell, left, right };
+    return { wrap, shell, left, right };
   }
 
   function applyButtonBaseStyles(span) {
@@ -236,7 +246,7 @@ export function createButtonsController({
 
   function updateButtons() {
     if (!isFloatingMode()) {
-      document.getElementById('kg-buttons')?.remove();
+      document.getElementById('kg-buttons-wrap')?.remove();
       return;
     }
     const { left, right } = ensureShell();

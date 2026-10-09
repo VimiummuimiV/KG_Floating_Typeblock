@@ -1,4 +1,4 @@
-import { showFromDown, hideUp } from './animations.js';
+import { showFromDown, hideDown } from './animations.js';
 
 export function createStatsController({
   createElement,
@@ -58,7 +58,7 @@ export function createStatsController({
   function updateStats() {
     if (!getSetting('showStats')) {
       const wrap = document.getElementById(STATS_WRAP_ID);
-      if (wrap) hideUp(wrap, { distance: 24 });
+      if (wrap) hideDown(wrap, { distance: 24 });
       else removeStats();
       return;
     }
