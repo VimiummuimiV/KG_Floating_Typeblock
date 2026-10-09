@@ -18,6 +18,8 @@ export function createButtonsController({
   toggleTheme,
   toggleAutoEnterFloating,
   toggleCustomSettings,
+  toggleHelpPanel,
+  openReplay,
   THEME_NAMES
 }) {
   let numericIndicatorTimeout = null;
@@ -84,6 +86,22 @@ export function createButtonsController({
       isActive: () => !!getSetting('autoEnterFloating'),
       toggle: () => toggleAutoEnterFloating(),
       icon: ICONS.autoEnter
+    },
+    {
+      id: 'kg-btn-help',
+      title: 'Справка',
+      isActive: () => true,
+      noOpacity: true,
+      toggle: () => toggleHelpPanel(),
+      icon: ICONS.help
+    },
+    {
+      id: 'kg-btn-next',
+      title: 'Следующая игра',
+      isActive: () => true,
+      noOpacity: true,
+      toggle: () => openReplay(),
+      icon: ICONS.play
     }
   ];
 
@@ -190,13 +208,13 @@ export function createButtonsController({
     span.style.opacity = def.noOpacity || def.isActive() ? '1' : '0.4';
   }
 
-  function syncCollapseButton(right) {
+  function syncCollapseButton(right, animate = false) {
     let span = document.getElementById('kg-btn-collapse');
     if (!span) {
       span = document.createElement('span');
       span.id = 'kg-btn-collapse';
       span.innerHTML = ICONS.chevronUp;
-      span.style.transition = 'transform 0.2s ease';
+      span.style.transition = 'transform 0.2s ease, border-radius 0.2s ease';
       span.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -208,7 +226,19 @@ export function createButtonsController({
     span.title = open ? 'Скрыть кнопки' : 'Показать кнопки';
     applyButtonBaseStyles(span);
     span.style.opacity = '1';
-    span.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+    const target = open ? 'rotate(0deg)' : 'rotate(180deg)';
+    if (animate) {
+      span.style.setProperty('border-radius', '50%', 'important');
+      span.style.transform = target;
+      const done = () => {
+        span.style.setProperty('border-radius', '0.2em', 'important');
+        span.removeEventListener('transitionend', done);
+      };
+      span.addEventListener('transitionend', done);
+    } else {
+      span.style.transform = target;
+      span.style.setProperty('border-radius', '0.2em', 'important');
+    }
   }
 
   async function toggleCollapse() {
@@ -241,7 +271,7 @@ export function createButtonsController({
       BUTTONS.forEach((def) => syncButton(def, parts2.left));
       await showFromUp(parts2.left, { distance: 36 });
     }
-    syncCollapseButton(ensureShell().right);
+    syncCollapseButton(ensureShell().right, true);
     animating = false;
   }
 

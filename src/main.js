@@ -859,6 +859,8 @@ import { createButtonsController } from './buttons.js';
     toggleTheme,
     toggleAutoEnterFloating,
     toggleCustomSettings,
+    toggleHelpPanel: () => helpController.toggleHelpPanel(),
+    openReplay,
     THEME_NAMES
   });
 

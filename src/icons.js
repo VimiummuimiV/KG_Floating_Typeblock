@@ -52,5 +52,13 @@ export const ICONS = {
     <line x1="15" y1="12" x2="3" y2="12"/>`),
 
   chevronUp: svgIcon(`
-    <polyline points="18 15 12 9 6 15"/>`)
+    <polyline points="18 15 12 9 6 15"/>`),
+
+  help: svgIcon(`
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+    <line x1="12" y1="17" x2="12.01" y2="17"/>`),
+
+  play: svgIcon(`
+    <polygon points="6 3 20 12 6 21 6 3" fill="currentColor" stroke="none"/>`)
 };
