@@ -619,18 +619,17 @@ import { createButtonsController } from './buttons.js';
   }
 
   // Resize (horizontal) and move (vertical) the block
+  const eventHits = (e, id) => {
+    const el = document.getElementById(id);
+    return !!el && (el === e.target || el.contains(e.target));
+  };
+
   function setupMainBlockDrag() {
     const mainBlock = document.getElementById('main-block');
     if (!mainBlock) return;
 
-    const shouldIgnoreDrag = (e) => {
-      const ignoreIds = ['inputtext', 'kg-stats', 'kg-stats-wrap', 'kg-buttons', 'kg-buttons-wrap'];
-      for (const id of ignoreIds) {
-        const el = document.getElementById(id);
-        if (el && (el === e.target || el.contains(e.target))) return true;
-      }
-      return false;
-    };
+    const shouldIgnoreDrag = (e) =>
+      eventHits(e, 'inputtext') || eventHits(e, 'kg-stats-wrap') || eventHits(e, 'kg-buttons-wrap');
 
     setupDragInteraction(mainBlock, (e, data) => {
       const { innerWidth, innerHeight } = window;
@@ -994,10 +993,7 @@ import { createButtonsController } from './buttons.js';
 
   // Double click: on the input toggles floating mode, on the text block toggles text view
   function onDblclick(e) {
-    // Ignore interactive overlays (stats, buttons)
-    const ignore = document.getElementById('kg-stats-wrap') || document.getElementById('kg-stats');
-    const indicators = document.getElementById('kg-buttons-wrap') || document.getElementById('kg-buttons');
-    if (ignore?.contains(e.target) || indicators?.contains(e.target)) return;
+    if (eventHits(e, 'kg-stats-wrap') || eventHits(e, 'kg-buttons-wrap')) return;
 
     const textArea = document.getElementById(isFloatingMode ? 'main-block' : 'typetext');
     if (e.target === document.getElementById('inputtext')) toggleFloatingMode();
