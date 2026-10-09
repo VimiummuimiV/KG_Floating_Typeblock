@@ -1,4 +1,5 @@
 import { svgIcon, ICONS } from './icons.js';
+import { hideUp, showFromUp } from './animations.js';
 
 export function createIndicatorsController({
   themes,
@@ -21,12 +22,11 @@ export function createIndicatorsController({
   THEME_NAMES
 }) {
   let numericIndicatorTimeout = null;
+  let animating = false;
 
   // title/icon may be string or () => string
   // noOpacity: keep full opacity regardless of isActive
-  // alwaysVisible: shown even when the bar is collapsed (chevron)
-  // pinRight: pushed to the right edge of the block
-  const INDICATORS = [
+  const BUTTONS = [
     {
       id: 'kg-saved-indicator',
       title: () => getSettingsForMode(getCurrentModeKey())
@@ -85,44 +85,61 @@ export function createIndicatorsController({
       isActive: () => !!getSetting('autoEnterFloating'),
       toggle: () => toggleAutoEnterFloating(),
       icon: ICONS.autoEnter
-    },
-    {
-      id: 'kg-collapse-indicator',
-      title: () => getSetting('showIndicators') ? 'Скрыть кнопки' : 'Показать кнопки',
-      isActive: () => true,
-      noOpacity: true,
-      alwaysVisible: true,
-      pinRight: true,
-      toggle: () => {
-        setSetting('showIndicators', !getSetting('showIndicators'));
-        updateIndicators();
-      },
-      icon: () => getSetting('showIndicators') ? ICONS.chevronDown : ICONS.chevronUp
     }
   ];
 
-  function getIndicatorContainer() {
+  function resolve(value) {
+    return typeof value === 'function' ? value() : value;
+  }
+
+  function ensureShell() {
     const mainBlock = document.getElementById('main-block');
     if (!mainBlock) return null;
-    let container = document.getElementById('kg-indicator-container');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'kg-indicator-container';
-      Object.assign(container.style, {
+
+    let shell = document.getElementById('kg-indicator-container');
+    if (!shell) {
+      shell = document.createElement('div');
+      shell.id = 'kg-indicator-container';
+      Object.assign(shell.style, {
         position: 'absolute',
         left: '0',
         right: '0',
         bottom: '-40px',
-        gap: '8px',
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'flex-start',
         zIndex: '2100'
       });
-      mainBlock.appendChild(container);
+      mainBlock.appendChild(shell);
     }
-    return container;
+
+    let left = document.getElementById('kg-indicator-left');
+    if (!left) {
+      left = document.createElement('div');
+      left.id = 'kg-indicator-left';
+      Object.assign(left.style, {
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: '8px'
+      });
+      shell.appendChild(left);
+    }
+
+    let right = document.getElementById('kg-indicator-right');
+    if (!right) {
+      right = document.createElement('div');
+      right.id = 'kg-indicator-right';
+      Object.assign(right.style, {
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: 'auto'
+      });
+      shell.appendChild(right);
+    }
+
+    return { shell, left, right };
   }
 
   function applyIndicatorBaseStyles(span) {
@@ -137,51 +154,108 @@ export function createIndicatorsController({
       height: '28px',
       backgroundColor: background,
       color: text,
-      stroke: text
+      stroke: text,
+      cursor: 'pointer'
     });
     span.style.setProperty('border-radius', '0.2em', 'important');
     span.style.setProperty('box-shadow', theme.shadowSmall, 'important');
   }
 
-  function resolve(value) {
-    return typeof value === 'function' ? value() : value;
-  }
-
-  function syncIndicator({ id, title, icon, isActive, toggle, noOpacity, alwaysVisible, pinRight }) {
-    const container = getIndicatorContainer();
-    if (!container) return;
-    if (!isFloatingMode()) {
-      document.getElementById(id)?.remove();
-      return;
-    }
-    const barOpen = getSetting('showIndicators') !== false;
-    if (!alwaysVisible && !barOpen) {
-      document.getElementById(id)?.remove();
-      return;
-    }
-    let span = document.getElementById(id);
+  function syncButton(def, parent) {
+    let span = document.getElementById(def.id);
     if (!span) {
       span = document.createElement('span');
-      span.id = id;
-      if (toggle) {
-        span.style.cursor = 'pointer';
-        span.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          toggle();
-        });
-      }
-      container.appendChild(span);
+      span.id = def.id;
+      span.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        def.toggle();
+      });
+      parent.appendChild(span);
+    } else if (span.parentElement !== parent) {
+      parent.appendChild(span);
     }
-    span.title = resolve(title);
-    span.innerHTML = resolve(icon);
+    span.title = resolve(def.title);
+    span.innerHTML = resolve(def.icon);
     applyIndicatorBaseStyles(span);
-    span.style.opacity = noOpacity || isActive() ? '1' : '0.4';
-    // Chevron stays on the right edge of the block
-    span.style.marginLeft = pinRight ? 'auto' : '';
+    span.style.opacity = def.noOpacity || def.isActive() ? '1' : '0.4';
   }
 
-  const updateIndicators = () => INDICATORS.forEach(syncIndicator);
+  function syncCollapseButton(right) {
+    let span = document.getElementById('kg-collapse-indicator');
+    if (!span) {
+      span = document.createElement('span');
+      span.id = 'kg-collapse-indicator';
+      span.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleCollapse();
+      });
+      right.appendChild(span);
+    }
+    const open = getSetting('showIndicators') !== false;
+    // open → chevron up (hide upward); closed → chevron down (show downward)
+    span.title = open ? 'Скрыть кнопки' : 'Показать кнопки';
+    span.innerHTML = open ? ICONS.chevronUp : ICONS.chevronDown;
+    applyIndicatorBaseStyles(span);
+    span.style.opacity = '1';
+  }
+
+  async function toggleCollapse() {
+    if (animating || !isFloatingMode()) return;
+    const open = getSetting('showIndicators') !== false;
+    const parts = ensureShell();
+    if (!parts) return;
+
+    animating = true;
+    if (open) {
+      // Hide left group upward, then clear it
+      setSetting('showIndicators', false);
+      await hideUp(parts.left, { distance: 36 });
+      parts.left.replaceChildren();
+      // Recreate empty left container (hideUp may have removed it)
+      if (!document.getElementById('kg-indicator-left')) {
+        const left = document.createElement('div');
+        left.id = 'kg-indicator-left';
+        Object.assign(left.style, {
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: '8px'
+        });
+        parts.shell.insertBefore(left, parts.right);
+      }
+    } else {
+      setSetting('showIndicators', true);
+      const parts2 = ensureShell();
+      BUTTONS.forEach((def) => syncButton(def, parts2.left));
+      await showFromUp(parts2.left, { distance: 36 });
+    }
+    syncCollapseButton(ensureShell().right);
+    animating = false;
+  }
+
+  function updateIndicators() {
+    if (!isFloatingMode()) {
+      document.getElementById('kg-indicator-container')?.remove();
+      return;
+    }
+    const { left, right } = ensureShell();
+    const open = getSetting('showIndicators') !== false;
+
+    if (open) {
+      BUTTONS.forEach((def) => syncButton(def, left));
+      // Remove buttons that are no longer in the list
+      [...left.children].forEach((child) => {
+        if (!BUTTONS.some((d) => d.id === child.id) && child.id !== 'kg-numeric-indicator') {
+          child.remove();
+        }
+      });
+    } else {
+      left.replaceChildren();
+    }
+    syncCollapseButton(right);
+  }
 
   function ensureFontImport() {
     if (document.getElementById('kg-font-import')) return;
@@ -193,22 +267,19 @@ export function createIndicatorsController({
   }
 
   function showNumericIndicator(value, title = '', updateOnly = false) {
-    let span = document.getElementById('kg-numeric-indicator');
-    if (!span && updateOnly) return;
     if (getSetting('showIndicators') === false) {
-      span?.remove();
+      document.getElementById('kg-numeric-indicator')?.remove();
       return;
     }
-    const container = getIndicatorContainer();
-    if (!container) return;
+    let span = document.getElementById('kg-numeric-indicator');
+    if (!span && updateOnly) return;
+    const { left } = ensureShell() || {};
+    if (!left) return;
     ensureFontImport();
     if (!span) {
       span = document.createElement('span');
       span.id = 'kg-numeric-indicator';
-      // Insert before the right-pinned chevron if present
-      const chevron = document.getElementById('kg-collapse-indicator');
-      if (chevron) container.insertBefore(span, chevron);
-      else container.appendChild(span);
+      left.appendChild(span);
     }
     span.title = title;
     applyIndicatorBaseStyles(span);
@@ -216,7 +287,7 @@ export function createIndicatorsController({
       fontFamily: '"Quicksand", sans-serif',
       fontWeight: '600',
       fontSize: '1.1em',
-      marginLeft: ''
+      cursor: 'default'
     });
     span.innerText = String(value);
     if (updateOnly) return;

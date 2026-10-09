@@ -1,3 +1,5 @@
+import { showFromDown, hideUp } from './animations.js';
+
 export function createStatsController({
   createElement,
   getSetting,
@@ -51,9 +53,12 @@ export function createStatsController({
 
   function updateStats() {
     if (!getSetting('showStats')) {
-      removeStats();
+      const existing = document.getElementById(STATS_ID);
+      if (existing) hideUp(existing, { distance: 24, baseTransform: "translateX(-50%)" });
+      else removeStats();
       return;
     }
+    const isNew = !document.getElementById(STATS_ID);
     const stats = ensureStatsElement();
     if (!stats) return;
 
@@ -73,11 +78,12 @@ export function createStatsController({
     const previousErrors = Number(errorsValue.textContent);
     const alreadyShown = stats.dataset.kgReady === '1';
     if (setText(errorsValue, errors) && errors > previousErrors && alreadyShown) {
-      // Animate only the number so the separator border does not scale
       errorsValue.animate(ERRORS_HIT_ANIMATION, ERRORS_HIT_DURATION);
     }
     stats.dataset.kgReady = '1';
     errorsBox.classList.toggle('kg-errors-active', errors > 0);
+
+    if (isNew) showFromDown(stats, { distance: 24, baseTransform: "translateX(-50%)" });
   }
 
   function toggleStats() {

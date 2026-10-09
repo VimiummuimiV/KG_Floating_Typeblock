@@ -1,7 +1,3 @@
-// Matrix rain effect for KG_Floating_Typeblock.
-// Renders falling glyphs/words of the current game text on a fullscreen canvas
-// underneath the floating block. Controlled from main.js via a factory.
-
 export function createMatrixController({
   getSetting,
   isFloatingMode,
