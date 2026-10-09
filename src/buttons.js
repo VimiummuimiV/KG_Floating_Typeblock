@@ -195,6 +195,8 @@ export function createButtonsController({
     if (!span) {
       span = document.createElement('span');
       span.id = 'kg-btn-collapse';
+      span.innerHTML = ICONS.chevronUp;
+      span.style.transition = 'transform 0.2s ease';
       span.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -203,11 +205,10 @@ export function createButtonsController({
       right.appendChild(span);
     }
     const open = getSetting('showButtons') !== false;
-    // open → chevron up (hide upward); closed → chevron down (show downward)
     span.title = open ? 'Скрыть кнопки' : 'Показать кнопки';
-    span.innerHTML = open ? ICONS.chevronUp : ICONS.chevronDown;
     applyButtonBaseStyles(span);
     span.style.opacity = '1';
+    span.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
   }
 
   async function toggleCollapse() {

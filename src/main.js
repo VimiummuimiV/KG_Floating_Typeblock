@@ -977,8 +977,9 @@ import { createButtonsController } from './buttons.js';
   }
 
   function onKeydown(e) {
+    if (e.repeat) return;
     if (e.ctrlKey && (e.key === 'Enter' || e.code === 'Enter')) openReplay();
-    if (!settings) return; // The typeblock has not appeared yet
+    if (!settings) return;
 
     if (isFloatingMode && (e.key === 'Escape' || e.key === 'Enter')) {
       exitFloatingMode();

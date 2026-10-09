@@ -52,8 +52,5 @@ export const ICONS = {
     <line x1="15" y1="12" x2="3" y2="12"/>`),
 
   chevronUp: svgIcon(`
-    <polyline points="18 15 12 9 6 15"/>`),
-
-  chevronDown: svgIcon(`
-    <polyline points="6 9 12 15 18 9"/>`)
+    <polyline points="18 15 12 9 6 15"/>`)
 };
