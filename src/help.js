@@ -4,7 +4,7 @@ export function createHelpController({
   clamp,
   onOff,
   svgIcon,
-  applyIndicatorBaseStyles,
+  applyButtonBaseStyles,
   themes,
   getCurrentTheme,
   getSetting,
@@ -129,7 +129,7 @@ export function createHelpController({
     if (!helpPanel.popup || !currentTheme) return;
     const { background, text } = themes[currentTheme].input.normal;
     helpPanel.popup.querySelectorAll('.kg-help-action').forEach(button => {
-      applyIndicatorBaseStyles(button);
+      applyButtonBaseStyles(button);
       button.style.setProperty('--kg-action-hover-bg', text);
       button.style.setProperty('--kg-action-hover-color', background);
     });

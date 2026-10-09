@@ -1,7 +1,7 @@
 import { createMatrixController } from './matrix.js';
 import { createHelpController } from './help.js';
 import { createStatsController } from './stats.js';
-import { createIndicatorsController } from './indicators.js';
+import { createButtonsController } from './buttons.js';
 
 (function () {
   'use strict';
@@ -36,7 +36,7 @@ import { createIndicatorsController } from './indicators.js';
     showStats: true,
     theme: 'dark',
     matrixEffect: false,
-    showIndicators: true
+    showButtons: true
   };
 
   // ─── Themes ────────────────────────────────────────────────────────────────
@@ -345,7 +345,7 @@ import { createIndicatorsController } from './indicators.js';
   function toggleTextVisibilityMode() {
     toggleSetting('isPartialMode', 'Построчное отображение');
     refreshTextView();
-    indicatorsController.updateIndicators();
+    buttonsController.updateButtons();
   }
 
   // ─── Progress bar (both modes) ─────────────────────────────────────────────
@@ -408,14 +408,14 @@ import { createIndicatorsController } from './indicators.js';
   function toggleProgressBar() {
     toggleSetting('showProgress', 'Прогресс-бар');
     updateProgressBar();
-    indicatorsController.updateIndicators();
+    buttonsController.updateButtons();
   }
 
   // ─── Auto enter ────────────────────────────────────────────────────────────
 
   function toggleAutoEnterFloating() {
     toggleSetting('autoEnterFloating', 'Автовход в плавающий режим');
-    indicatorsController.updateIndicators();
+    buttonsController.updateButtons();
   }
 
   function toggleCustomSettings() {
@@ -429,7 +429,7 @@ import { createIndicatorsController } from './indicators.js';
       showToast('Настройки режима забыты');
     } else {
       setSettingsForMode(modeKey, { ...settings });
-      indicatorsController.updateIndicators();
+      buttonsController.updateButtons();
       showToast('Настройки режима запомнены');
     }
   }
@@ -455,7 +455,7 @@ import { createIndicatorsController } from './indicators.js';
     toggleSetting('alignInputWithFocus', 'Выравнивание ввода');
     if (getSetting('alignInputWithFocus')) alignInputWithTypeFocus();
     else resetInputAlignment();
-    indicatorsController.updateIndicators();
+    buttonsController.updateButtons();
   }
 
   // ─── Theme (floating) ──────────────────────────────────────────────────────
@@ -465,13 +465,13 @@ import { createIndicatorsController } from './indicators.js';
     updateStyles();
     setInputColorState(document.getElementById('inputtext'));
     handleContentChanges();
-    indicatorsController.updateIndicators();
+    buttonsController.updateButtons();
   }
 
   function toggleTheme() {
     setSetting('theme', currentTheme === 'dark' ? 'light' : 'dark');
     applySettings();
-    indicatorsController.showFontSizeIndicator(true); // Only update if present
+    buttonsController.showFontSizeIndicator(true); // Only update if present
     showToast(`Тема: ${THEME_NAMES[currentTheme]}`);
     helpController.renderHelpPanel();
   }
@@ -539,7 +539,7 @@ import { createIndicatorsController } from './indicators.js';
     setSetting('fontSize', clamp(size, FONT_SIZE.min, FONT_SIZE.max));
     applyFontSize();
     refreshTextView();
-    indicatorsController.showFontSizeIndicator();
+    buttonsController.showFontSizeIndicator();
   }
 
   // ─── Dimming background (floating) ─────────────────────────────────────────
@@ -560,7 +560,7 @@ import { createIndicatorsController } from './indicators.js';
       const next = clamp(level, 0, 100);
       setActiveDimmingLevel(next);
       updateStyles();
-      indicatorsController.showNumericIndicator(Math.round(next), getSetting('matrixEffect') ? 'Затемнение матрицы' : 'Затемнение фона');
+      buttonsController.showNumericIndicator(Math.round(next), getSetting('matrixEffect') ? 'Затемнение матрицы' : 'Затемнение фона');
       e.preventDefault();
     });
     addEvent(dimmingBg, 'mouseup', (e) => {
@@ -576,7 +576,7 @@ import { createIndicatorsController } from './indicators.js';
     toggleSetting('matrixEffect', 'Эффект матрицы');
     matrixController.updateMatrixEffect();
     updateStyles();
-    indicatorsController.updateIndicators();
+    buttonsController.updateButtons();
   }
 
   // ─── Main block drag (floating) ────────────────────────────────────────────
@@ -624,7 +624,7 @@ import { createIndicatorsController } from './indicators.js';
     if (!mainBlock) return;
 
     const shouldIgnoreDrag = (e) => {
-      const ignoreIds = ['inputtext', 'kg-stats', 'kg-indicator-container'];
+      const ignoreIds = ['inputtext', 'kg-stats', 'kg-buttons'];
       for (const id of ignoreIds) {
         const el = document.getElementById(id);
         if (el && (el === e.target || el.contains(e.target))) return true;
@@ -697,7 +697,7 @@ import { createIndicatorsController } from './indicators.js';
         width: 100vw !important;
         height: 100vh !important;
         background-color: rgba(0, 0, 0, ${dimmingLevel / 100}) !important;
-        z-index: 1999 !important;
+        z-index: 2000 !important;
         cursor: ns-resize !important;
         user-select: none !important;
       }
@@ -708,7 +708,7 @@ import { createIndicatorsController } from './indicators.js';
         left: 50% !important;
         top: ${getSetting('mainBlockPosition')}vh !important;
         transform: translateX(-50%) !important;
-        z-index: 2000 !important;
+        z-index: 2010 !important;
         pointer-events: auto !important;
         min-width: 566px !important;
         filter: ${getElementsBrightness()} !important;
@@ -836,12 +836,12 @@ import { createIndicatorsController } from './indicators.js';
     getSetting,
     toggleSetting,
     clamp,
-    updateIndicators: () => indicatorsController.updateIndicators()
+    updateButtons: () => buttonsController.updateButtons()
   });
 
-  // ─── Indicators controller (see indicators.js) ─────────────────────────────
+  // ─── Buttons controller (see buttons.js) ─────────────────────────────
 
-  const indicatorsController = createIndicatorsController({
+  const buttonsController = createButtonsController({
     themes,
     getCurrentTheme: () => currentTheme,
     isFloatingMode: () => isFloatingMode,
@@ -869,8 +869,8 @@ import { createIndicatorsController } from './indicators.js';
     readStorage,
     clamp,
     onOff,
-    svgIcon: indicatorsController.svgIcon,
-    applyIndicatorBaseStyles: indicatorsController.applyIndicatorBaseStyles,
+    svgIcon: buttonsController.svgIcon,
+    applyButtonBaseStyles: buttonsController.applyButtonBaseStyles,
     themes,
     getCurrentTheme: () => currentTheme,
     getSetting,
@@ -905,7 +905,7 @@ import { createIndicatorsController } from './indicators.js';
     observeInput();
 
     handleContentChanges();
-    indicatorsController.updateIndicators();
+    buttonsController.updateButtons();
     matrixController.updateMatrixEffect();
 
     // Enable input color transition after the first paint
@@ -919,12 +919,12 @@ import { createIndicatorsController } from './indicators.js';
     dimmingBg?.remove();
     dimmingBg = null;
     matrixController.destroyMatrix();
-    document.getElementById('kg-fontsize-indicator')?.remove();
+    document.getElementById('kg-numeric-indicator')?.remove();
     statsController.removeStats();
     resetStyles();
     isFloatingMode = false;
     updateStyles();
-    indicatorsController.updateIndicators();
+    buttonsController.updateButtons();
     // Native mode keeps the line-by-line view and the progress bar
     handleContentChanges();
     helpController.renderHelpPanel();
@@ -993,9 +993,9 @@ import { createIndicatorsController } from './indicators.js';
 
   // Double click: on the input toggles floating mode, on the text block toggles text view
   function onDblclick(e) {
-    // Ignore interactive overlays (stats, indicator buttons)
+    // Ignore interactive overlays (stats, buttons)
     const ignore = document.getElementById('kg-stats');
-    const indicators = document.getElementById('kg-indicator-container');
+    const indicators = document.getElementById('kg-buttons');
     if (ignore?.contains(e.target) || indicators?.contains(e.target)) return;
 
     const textArea = document.getElementById(isFloatingMode ? 'main-block' : 'typetext');
@@ -1076,7 +1076,7 @@ import { createIndicatorsController } from './indicators.js';
           helpController.restoreHelpPanel();
         }
         if (getSetting('autoEnterFloating')) enterFloatingMode();
-        indicatorsController.updateIndicators();
+        buttonsController.updateButtons();
       }
       handleContentChanges();
     };
@@ -1088,7 +1088,16 @@ import { createIndicatorsController } from './indicators.js';
 
   // ─── Init ──────────────────────────────────────────────────────────────────
 
-  setupGlobalListeners();
-  startObserver();
+  // Script may run before <body> exists (early injection)
+  function init() {
+    setupGlobalListeners();
+    startObserver();
+  }
+
+  if (document.body) {
+    init();
+  } else {
+    document.addEventListener('DOMContentLoaded', init);
+  }
 
 })();

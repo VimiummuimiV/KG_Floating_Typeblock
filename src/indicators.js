@@ -1,7 +1,7 @@
 import { svgIcon, ICONS } from './icons.js';
 import { hideUp, showFromUp } from './animations.js';
 
-export function createIndicatorsController({
+export function createButtonsController({
   themes,
   getCurrentTheme,
   isFloatingMode,
@@ -28,7 +28,7 @@ export function createIndicatorsController({
   // noOpacity: keep full opacity regardless of isActive
   const BUTTONS = [
     {
-      id: 'kg-saved-indicator',
+      id: 'kg-btn-saved',
       title: () => getSettingsForMode(getCurrentModeKey())
         ? 'Забыть настройки режима'
         : 'Запомнить настройки режима',
@@ -37,42 +37,42 @@ export function createIndicatorsController({
       icon: ICONS.saved
     },
     {
-      id: 'kg-partial-indicator',
+      id: 'kg-btn-partial',
       title: 'Построчное отображение',
       isActive: isPartialMode,
       toggle: () => toggleTextVisibilityMode(),
       icon: ICONS.partial
     },
     {
-      id: 'kg-alignment-indicator',
+      id: 'kg-btn-alignment',
       title: 'Выравнивание ввода',
       isActive: () => isFloatingMode() && getSetting('alignInputWithFocus'),
       toggle: () => toggleInputAlignment(),
       icon: ICONS.alignment
     },
     {
-      id: 'kg-stats-indicator',
+      id: 'kg-btn-stats',
       title: 'Скорость и ошибки',
       isActive: () => isFloatingMode() && getSetting('showStats'),
       toggle: () => toggleStats(),
       icon: ICONS.stats
     },
     {
-      id: 'kg-progress-indicator',
+      id: 'kg-btn-progress',
       title: 'Прогресс-бар',
       isActive: () => getSetting('showProgress'),
       toggle: () => toggleProgressBar(),
       icon: ICONS.progress
     },
     {
-      id: 'kg-matrix-indicator',
+      id: 'kg-btn-matrix',
       title: 'Эффект матрицы',
       isActive: () => isFloatingMode() && getSetting('matrixEffect'),
       toggle: () => toggleMatrixEffect(),
       icon: ICONS.matrix
     },
     {
-      id: 'kg-theme-indicator',
+      id: 'kg-btn-theme',
       title: () => THEME_NAMES[getCurrentTheme()] || 'Тема',
       isActive: () => true,
       noOpacity: true,
@@ -80,7 +80,7 @@ export function createIndicatorsController({
       icon: () => getCurrentTheme() === 'dark' ? ICONS.moon : ICONS.sun
     },
     {
-      id: 'kg-autoenter-indicator',
+      id: 'kg-btn-autoenter',
       title: 'Автовход в плавающий режим',
       isActive: () => !!getSetting('autoEnterFloating'),
       toggle: () => toggleAutoEnterFloating(),
@@ -96,10 +96,10 @@ export function createIndicatorsController({
     const mainBlock = document.getElementById('main-block');
     if (!mainBlock) return null;
 
-    let shell = document.getElementById('kg-indicator-container');
+    let shell = document.getElementById('kg-buttons');
     if (!shell) {
       shell = document.createElement('div');
-      shell.id = 'kg-indicator-container';
+      shell.id = 'kg-buttons';
       Object.assign(shell.style, {
         position: 'absolute',
         left: '0',
@@ -108,15 +108,15 @@ export function createIndicatorsController({
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        zIndex: '2100'
+        zIndex: '2005'
       });
       mainBlock.appendChild(shell);
     }
 
-    let left = document.getElementById('kg-indicator-left');
+    let left = document.getElementById('kg-buttons-left');
     if (!left) {
       left = document.createElement('div');
-      left.id = 'kg-indicator-left';
+      left.id = 'kg-buttons-left';
       Object.assign(left.style, {
         display: 'flex',
         flexDirection: 'row',
@@ -126,10 +126,10 @@ export function createIndicatorsController({
       shell.appendChild(left);
     }
 
-    let right = document.getElementById('kg-indicator-right');
+    let right = document.getElementById('kg-buttons-right');
     if (!right) {
       right = document.createElement('div');
-      right.id = 'kg-indicator-right';
+      right.id = 'kg-buttons-right';
       Object.assign(right.style, {
         display: 'flex',
         flexDirection: 'row',
@@ -142,7 +142,7 @@ export function createIndicatorsController({
     return { shell, left, right };
   }
 
-  function applyIndicatorBaseStyles(span) {
+  function applyButtonBaseStyles(span) {
     const theme = themes[getCurrentTheme()];
     if (!theme) return;
     const { text, background } = theme.input.normal;
@@ -177,15 +177,15 @@ export function createIndicatorsController({
     }
     span.title = resolve(def.title);
     span.innerHTML = resolve(def.icon);
-    applyIndicatorBaseStyles(span);
+    applyButtonBaseStyles(span);
     span.style.opacity = def.noOpacity || def.isActive() ? '1' : '0.4';
   }
 
   function syncCollapseButton(right) {
-    let span = document.getElementById('kg-collapse-indicator');
+    let span = document.getElementById('kg-btn-collapse');
     if (!span) {
       span = document.createElement('span');
-      span.id = 'kg-collapse-indicator';
+      span.id = 'kg-btn-collapse';
       span.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -193,30 +193,30 @@ export function createIndicatorsController({
       });
       right.appendChild(span);
     }
-    const open = getSetting('showIndicators') !== false;
+    const open = getSetting('showButtons') !== false;
     // open → chevron up (hide upward); closed → chevron down (show downward)
     span.title = open ? 'Скрыть кнопки' : 'Показать кнопки';
     span.innerHTML = open ? ICONS.chevronUp : ICONS.chevronDown;
-    applyIndicatorBaseStyles(span);
+    applyButtonBaseStyles(span);
     span.style.opacity = '1';
   }
 
   async function toggleCollapse() {
     if (animating || !isFloatingMode()) return;
-    const open = getSetting('showIndicators') !== false;
+    const open = getSetting('showButtons') !== false;
     const parts = ensureShell();
     if (!parts) return;
 
     animating = true;
     if (open) {
       // Hide left group upward, then clear it
-      setSetting('showIndicators', false);
+      setSetting('showButtons', false);
       await hideUp(parts.left, { distance: 36 });
       parts.left.replaceChildren();
       // Recreate empty left container (hideUp may have removed it)
-      if (!document.getElementById('kg-indicator-left')) {
+      if (!document.getElementById('kg-buttons-left')) {
         const left = document.createElement('div');
-        left.id = 'kg-indicator-left';
+        left.id = 'kg-buttons-left';
         Object.assign(left.style, {
           display: 'flex',
           flexDirection: 'row',
@@ -226,7 +226,7 @@ export function createIndicatorsController({
         parts.shell.insertBefore(left, parts.right);
       }
     } else {
-      setSetting('showIndicators', true);
+      setSetting('showButtons', true);
       const parts2 = ensureShell();
       BUTTONS.forEach((def) => syncButton(def, parts2.left));
       await showFromUp(parts2.left, { distance: 36 });
@@ -235,13 +235,13 @@ export function createIndicatorsController({
     animating = false;
   }
 
-  function updateIndicators() {
+  function updateButtons() {
     if (!isFloatingMode()) {
-      document.getElementById('kg-indicator-container')?.remove();
+      document.getElementById('kg-buttons')?.remove();
       return;
     }
     const { left, right } = ensureShell();
-    const open = getSetting('showIndicators') !== false;
+    const open = getSetting('showButtons') !== false;
 
     if (open) {
       BUTTONS.forEach((def) => syncButton(def, left));
@@ -267,7 +267,7 @@ export function createIndicatorsController({
   }
 
   function showNumericIndicator(value, title = '', updateOnly = false) {
-    if (getSetting('showIndicators') === false) {
+    if (getSetting('showButtons') === false) {
       document.getElementById('kg-numeric-indicator')?.remove();
       return;
     }
@@ -282,7 +282,7 @@ export function createIndicatorsController({
       left.appendChild(span);
     }
     span.title = title;
-    applyIndicatorBaseStyles(span);
+    applyButtonBaseStyles(span);
     Object.assign(span.style, {
       fontFamily: '"Quicksand", sans-serif',
       fontWeight: '600',
@@ -300,10 +300,10 @@ export function createIndicatorsController({
   }
 
   return {
-    updateIndicators,
+    updateButtons,
     showNumericIndicator,
     showFontSizeIndicator,
-    applyIndicatorBaseStyles,
+    applyButtonBaseStyles,
     svgIcon
   };
 }

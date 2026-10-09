@@ -5,7 +5,7 @@ export function createStatsController({
   getSetting,
   toggleSetting,
   clamp,
-  updateIndicators
+  updateButtons
 }) {
   const STATS_ID = 'kg-stats';
   const SPEED_SCALE = { maxSpeed: 1000, hueRange: 130, cells: 16 };
@@ -89,7 +89,7 @@ export function createStatsController({
   function toggleStats() {
     toggleSetting('showStats', 'Скорость и ошибки');
     updateStats();
-    updateIndicators();
+    updateButtons();
   }
 
   function getStatsCss(theme, isDark) {
@@ -111,6 +111,7 @@ export function createStatsController({
         font-family: Tahoma, Arial, sans-serif !important;
         white-space: nowrap !important;
         user-select: none !important;
+        z-index: 2005 !important;
         --kg-speed-lightness: ${isDark ? '65%' : '40%'};
         color: hsl(var(--kg-speed-hue, 130) 70% var(--kg-speed-lightness)) !important;
         transition: color 0.25s !important;
