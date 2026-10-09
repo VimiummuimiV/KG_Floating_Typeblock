@@ -65,7 +65,7 @@ export function createIndicatorsController({
     },
     {
       id: 'kg-alignment-indicator',
-      title: 'Выравнивание ввода по фокусу',
+      title: 'Выравнивание ввода',
       isActive: () => isFloatingMode() && getSetting('alignInputWithFocus'),
       toggle: () => toggleInputAlignment(),
       icon: svgIcon(`
