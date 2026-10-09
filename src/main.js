@@ -26,7 +26,8 @@ import { createHelpController } from './help.js';
   const defaultSettings = {
     // false: floating mode is entered manually only (Alt + W or double click on the input)
     autoEnterFloating: true,
-    dimmingLevel: 50,
+    // Independent levels: backdrop (matrix off) and matrix (matrix on)
+    dimming: { backdrop: 50, matrix: 50 },
     mainBlockWidth: 90,
     mainBlockPosition: 25,
     visibleLines: 1,
@@ -254,6 +255,19 @@ import { createHelpController } from './help.js';
     settings[key] = value;
     if (key === 'theme') currentTheme = value;
     saveCurrentSettings(settings);
+  }
+
+  // Active dimming depends on whether matrix effect is on
+  function getActiveDimmingLevel() {
+    const dimming = getSetting('dimming') || defaultSettings.dimming;
+    return getSetting('matrixEffect') ? dimming.matrix : dimming.backdrop;
+  }
+
+  function setActiveDimmingLevel(value) {
+    const dimming = { ...(getSetting('dimming') || defaultSettings.dimming) };
+    if (getSetting('matrixEffect')) dimming.matrix = value;
+    else dimming.backdrop = value;
+    setSetting('dimming', dimming);
   }
 
   // Flip a boolean setting and confirm the new state with a toast
@@ -756,13 +770,13 @@ import { createHelpController } from './help.js';
 
     addEvent(dimmingBg, 'mousedown', (e) => {
       if (e.button !== 0) return;
-      dragStart = { y: e.clientY, level: getSetting('dimmingLevel') };
+      dragStart = { y: e.clientY, level: getActiveDimmingLevel() };
       e.preventDefault();
     });
     addEvent(dimmingBg, 'mousemove', (e) => {
       if (!dragStart) return;
       const level = dragStart.level + (dragStart.y - e.clientY) * DIMMING_SENSITIVITY;
-      setSetting('dimmingLevel', clamp(level, 0, 100));
+      setActiveDimmingLevel(clamp(level, 0, 100));
       updateStyles();
       e.preventDefault();
     });
@@ -778,6 +792,7 @@ import { createHelpController } from './help.js';
   function toggleMatrixEffect() {
     toggleSetting('matrixEffect', 'Эффект матрицы');
     matrixController.updateMatrixEffect();
+    updateStyles();
     updateIndicators();
   }
 
@@ -936,7 +951,7 @@ import { createHelpController } from './help.js';
   // Light theme only, and only once the backdrop is dark enough to make the block glare
   function getElementsBrightness() {
     if (!isFloatingMode || currentTheme !== 'light' || !settings) return 'none';
-    const dimmingLevel = getSetting('dimmingLevel');
+    const dimmingLevel = getActiveDimmingLevel();
     const elementsDimming = clamp((dimmingLevel - DIMMING_ELEMENTS_THRESHOLD) / (100 - DIMMING_ELEMENTS_THRESHOLD), 0, 1);
     return `brightness(${(1 - DIMMING_ELEMENTS_STRENGTH * elementsDimming).toFixed(2)})`;
   }
@@ -944,7 +959,7 @@ import { createHelpController } from './help.js';
   function getFloatingCss(inputTransition) {
     const theme = themes[currentTheme];
     const isDark = currentTheme === 'dark';
-    const dimmingLevel = getSetting('dimmingLevel');
+    const dimmingLevel = getActiveDimmingLevel();
     return `
       #kg-dimming-background {
         position: fixed !important;
