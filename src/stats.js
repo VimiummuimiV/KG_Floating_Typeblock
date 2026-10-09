@@ -7,6 +7,7 @@ export function createStatsController({
   clamp,
   updateButtons
 }) {
+  const STATS_WRAP_ID = 'kg-stats-wrap';
   const STATS_ID = 'kg-stats';
   const SPEED_SCALE = { maxSpeed: 1000, hueRange: 130, cells: 16 };
   const ERRORS_HIT_ANIMATION = [
@@ -19,7 +20,7 @@ export function createStatsController({
     const cells = [...Array(SPEED_SCALE.cells)].map(() =>
       createElement('div', { className: 'kg-speed-cell' })
     );
-    return createElement('div', { id: STATS_ID },
+    const panel = createElement('div', { id: STATS_ID },
       createElement('div', { className: 'kg-speed' },
         createElement('div', { className: 'kg-speed-readout' },
           createElement('span', { className: 'kg-speed-value', textContent: '0' }),
@@ -28,19 +29,22 @@ export function createStatsController({
       createElement('div', { className: 'kg-errors' },
         createElement('span', { className: 'kg-errors-value', textContent: '0' }),
         createElement('span', { className: 'kg-errors-label', textContent: 'ошибки' })));
+
+    // Wrapper owns position; panel stays free of transform so slide animation works
+    return createElement('div', { id: STATS_WRAP_ID }, panel);
   }
 
   function ensureStatsElement() {
-    let stats = document.getElementById(STATS_ID);
-    if (stats) return stats;
+    let wrap = document.getElementById(STATS_WRAP_ID);
+    if (wrap) return wrap.querySelector('#' + STATS_ID);
     const mainBlock = document.getElementById('main-block');
     if (!mainBlock) return null;
-    stats = createStatsElement();
-    mainBlock.prepend(stats);
-    return stats;
+    wrap = createStatsElement();
+    mainBlock.prepend(wrap);
+    return wrap.querySelector('#' + STATS_ID);
   }
 
-  const removeStats = () => document.getElementById(STATS_ID)?.remove();
+  const removeStats = () => document.getElementById(STATS_WRAP_ID)?.remove();
 
   const readNumber = (id) => Number.parseInt(document.getElementById(id)?.textContent, 10) || 0;
 
@@ -53,14 +57,15 @@ export function createStatsController({
 
   function updateStats() {
     if (!getSetting('showStats')) {
-      const existing = document.getElementById(STATS_ID);
-      if (existing) hideUp(existing, { distance: 24, baseTransform: "translateX(-50%)" });
+      const wrap = document.getElementById(STATS_WRAP_ID);
+      if (wrap) hideUp(wrap, { distance: 24 });
       else removeStats();
       return;
     }
-    const isNew = !document.getElementById(STATS_ID);
+    const isNew = !document.getElementById(STATS_WRAP_ID);
     const stats = ensureStatsElement();
     if (!stats) return;
+    const wrap = document.getElementById(STATS_WRAP_ID);
 
     const speed = readNumber('speed-label');
     const errors = readNumber('errors-label');
@@ -83,7 +88,7 @@ export function createStatsController({
     stats.dataset.kgReady = '1';
     errorsBox.classList.toggle('kg-errors-active', errors > 0);
 
-    if (isNew) showFromDown(stats, { distance: 24, baseTransform: "translateX(-50%)" });
+    if (isNew && wrap) showFromDown(wrap, { distance: 24 });
   }
 
   function toggleStats() {
@@ -94,12 +99,19 @@ export function createStatsController({
 
   function getStatsCss(theme, isDark) {
     return `
-      #${STATS_ID} {
+      #${STATS_WRAP_ID} {
         position: absolute !important;
         bottom: 100% !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
+        left: 0 !important;
+        right: 0 !important;
+        display: flex !important;
+        justify-content: center !important;
         margin-bottom: 8px !important;
+        z-index: 1 !important;
+        pointer-events: none !important;
+      }
+
+      #${STATS_ID} {
         display: flex !important;
         align-items: center !important;
         gap: 14px !important;
@@ -111,7 +123,7 @@ export function createStatsController({
         font-family: Tahoma, Arial, sans-serif !important;
         white-space: nowrap !important;
         user-select: none !important;
-        z-index: 2005 !important;
+        pointer-events: auto !important;
         --kg-speed-lightness: ${isDark ? '65%' : '40%'};
         color: hsl(var(--kg-speed-hue, 130) 70% var(--kg-speed-lightness)) !important;
         transition: color 0.25s !important;

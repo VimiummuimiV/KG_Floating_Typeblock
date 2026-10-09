@@ -18,7 +18,6 @@ export function createButtonsController({
   toggleTheme,
   toggleAutoEnterFloating,
   toggleCustomSettings,
-  getFontSize,
   THEME_NAMES
 }) {
   let numericIndicatorTimeout = null;
@@ -108,7 +107,7 @@ export function createButtonsController({
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        zIndex: '2005'
+        zIndex: '1'
       });
       mainBlock.appendChild(shell);
     }
@@ -295,14 +294,9 @@ export function createButtonsController({
     numericIndicatorTimeout = setTimeout(() => span.remove(), 3000);
   }
 
-  function showFontSizeIndicator(updateOnly = false) {
-    showNumericIndicator(getFontSize(), 'Текущий размер шрифта', updateOnly);
-  }
-
   return {
     updateButtons,
     showNumericIndicator,
-    showFontSizeIndicator,
     applyButtonBaseStyles,
     svgIcon
   };

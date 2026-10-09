@@ -471,7 +471,7 @@ import { createButtonsController } from './buttons.js';
   function toggleTheme() {
     setSetting('theme', currentTheme === 'dark' ? 'light' : 'dark');
     applySettings();
-    buttonsController.showFontSizeIndicator(true); // Only update if present
+    buttonsController.showNumericIndicator(getFontSize(), 'Текущий размер шрифта', true);
     showToast(`Тема: ${THEME_NAMES[currentTheme]}`);
     helpController.renderHelpPanel();
   }
@@ -539,7 +539,7 @@ import { createButtonsController } from './buttons.js';
     setSetting('fontSize', clamp(size, FONT_SIZE.min, FONT_SIZE.max));
     applyFontSize();
     refreshTextView();
-    buttonsController.showFontSizeIndicator();
+    buttonsController.showNumericIndicator(getFontSize(), 'Текущий размер шрифта');
   }
 
   // ─── Dimming background (floating) ─────────────────────────────────────────
@@ -624,7 +624,7 @@ import { createButtonsController } from './buttons.js';
     if (!mainBlock) return;
 
     const shouldIgnoreDrag = (e) => {
-      const ignoreIds = ['inputtext', 'kg-stats', 'kg-buttons'];
+      const ignoreIds = ['inputtext', 'kg-stats', 'kg-stats-wrap', 'kg-buttons'];
       for (const id of ignoreIds) {
         const el = document.getElementById(id);
         if (el && (el === e.target || el.contains(e.target))) return true;
@@ -715,6 +715,8 @@ import { createButtonsController } from './buttons.js';
       }
 
       #typeblock {
+        position: relative !important;
+        z-index: 2 !important;
         width: 100% !important;
         border-radius: 18px !important;
         background-color: ${theme.background} !important;
@@ -858,7 +860,6 @@ import { createButtonsController } from './buttons.js';
     toggleTheme,
     toggleAutoEnterFloating,
     toggleCustomSettings,
-    getFontSize,
     THEME_NAMES
   });
 
@@ -994,7 +995,7 @@ import { createButtonsController } from './buttons.js';
   // Double click: on the input toggles floating mode, on the text block toggles text view
   function onDblclick(e) {
     // Ignore interactive overlays (stats, buttons)
-    const ignore = document.getElementById('kg-stats');
+    const ignore = document.getElementById('kg-stats-wrap') || document.getElementById('kg-stats');
     const indicators = document.getElementById('kg-buttons');
     if (ignore?.contains(e.target) || indicators?.contains(e.target)) return;
 
