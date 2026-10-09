@@ -659,16 +659,12 @@ import { createHelpController } from './help.js';
       title: 'Эффект матрицы',
       isActive: () => isFloatingMode && getSetting('matrixEffect'),
       icon: svgIcon(`
-        <circle cx="5" cy="5" r="1.5" fill="currentColor" stroke="none"/>
-        <circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none"/>
-        <circle cx="19" cy="5" r="1.5" fill="currentColor" stroke="none"/>
-        <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-        <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-        <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-        <circle cx="5" cy="19" r="1.5" fill="currentColor" stroke="none"/>
-        <circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none"/>
-        <circle cx="19" cy="19" r="1.5" fill="currentColor" stroke="none"/>`)
-    }
+        <path d="M5 3v3m0 3v4m0 3v5"/>
+        <path d="M10 6v4m0 3v3m0 3v2" opacity=".6"/>
+        <path d="M15 3v5m0 3v3m0 3v4"/>
+        <path d="M20 7v3m0 3v4m0 3v1" opacity=".6"/>
+      `)
+    },
   ];
 
   function getIndicatorContainer() {
