@@ -71,9 +71,12 @@ export function createStatsController({
     const errorsBox = stats.querySelector('.kg-errors');
     const errorsValue = errorsBox.querySelector('.kg-errors-value');
     const previousErrors = Number(errorsValue.textContent);
-    if (setText(errorsValue, errors) && errors > previousErrors) {
-      errorsBox.animate(ERRORS_HIT_ANIMATION, ERRORS_HIT_DURATION);
+    const alreadyShown = stats.dataset.kgReady === '1';
+    if (setText(errorsValue, errors) && errors > previousErrors && alreadyShown) {
+      // Animate only the number so the separator border does not scale
+      errorsValue.animate(ERRORS_HIT_ANIMATION, ERRORS_HIT_DURATION);
     }
+    stats.dataset.kgReady = '1';
     errorsBox.classList.toggle('kg-errors-active', errors > 0);
   }
 

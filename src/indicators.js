@@ -1,8 +1,11 @@
+import { svgIcon, ICONS } from './icons.js';
+
 export function createIndicatorsController({
   themes,
   getCurrentTheme,
   isFloatingMode,
   getSetting,
+  setSetting,
   getSettingsForMode,
   getCurrentModeKey,
   isPartialMode,
@@ -19,26 +22,10 @@ export function createIndicatorsController({
 }) {
   let numericIndicatorTimeout = null;
 
-  const svgIcon = (content) => `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${content}</svg>`;
-
-  const ICON_SUN = svgIcon(`
-    <circle cx="12" cy="12" r="5"/>
-    <line x1="12" y1="1" x2="12" y2="3"/>
-    <line x1="12" y1="21" x2="12" y2="23"/>
-    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-    <line x1="1" y1="12" x2="3" y2="12"/>
-    <line x1="21" y1="12" x2="23" y2="12"/>
-    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`);
-
-  const ICON_MOON = svgIcon(`
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`);
-
-  // title/icon may be string or () => string for dynamic values
-  // noOpacity: keep full opacity regardless of isActive (theme)
+  // title/icon may be string or () => string
+  // noOpacity: keep full opacity regardless of isActive
+  // alwaysVisible: shown even when the bar is collapsed (chevron)
+  // pinRight: pushed to the right edge of the block
   const INDICATORS = [
     {
       id: 'kg-saved-indicator',
@@ -47,58 +34,42 @@ export function createIndicatorsController({
         : 'Запомнить настройки режима',
       isActive: () => !!getSettingsForMode(getCurrentModeKey()),
       toggle: () => toggleCustomSettings(),
-      icon: svgIcon(`
-        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-        <polyline points="7 3 7 8 15 8"></polyline>`)
+      icon: ICONS.saved
     },
     {
       id: 'kg-partial-indicator',
       title: 'Построчное отображение',
       isActive: isPartialMode,
       toggle: () => toggleTextVisibilityMode(),
-      icon: svgIcon(`
-        <line x1="17" y1="10" x2="3" y2="10"></line>
-        <line x1="21" y1="6" x2="3" y2="6"></line>
-        <line x1="21" y1="14" x2="3" y2="14"></line>
-        <line x1="17" y1="18" x2="3" y2="18"></line>`)
+      icon: ICONS.partial
     },
     {
       id: 'kg-alignment-indicator',
       title: 'Выравнивание ввода',
       isActive: () => isFloatingMode() && getSetting('alignInputWithFocus'),
       toggle: () => toggleInputAlignment(),
-      icon: svgIcon(`
-        <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path>`)
+      icon: ICONS.alignment
     },
     {
       id: 'kg-stats-indicator',
       title: 'Скорость и ошибки',
       isActive: () => isFloatingMode() && getSetting('showStats'),
       toggle: () => toggleStats(),
-      icon: svgIcon(`
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>`)
+      icon: ICONS.stats
     },
     {
       id: 'kg-progress-indicator',
       title: 'Прогресс-бар',
       isActive: () => getSetting('showProgress'),
       toggle: () => toggleProgressBar(),
-      icon: svgIcon(`
-        <rect x="2" y="9" width="20" height="6" rx="3"></rect>
-        <line x1="6" y1="12" x2="12" y2="12"></line>`)
+      icon: ICONS.progress
     },
     {
       id: 'kg-matrix-indicator',
       title: 'Эффект матрицы',
       isActive: () => isFloatingMode() && getSetting('matrixEffect'),
       toggle: () => toggleMatrixEffect(),
-      icon: svgIcon(`
-        <path d="M5 3v3m0 3v4m0 3v5"/>
-        <path d="M10 6v4m0 3v3m0 3v2" opacity=".6"/>
-        <path d="M15 3v5m0 3v3m0 3v4"/>
-        <path d="M20 7v3m0 3v4m0 3v1" opacity=".6"/>
-      `)
+      icon: ICONS.matrix
     },
     {
       id: 'kg-theme-indicator',
@@ -106,17 +77,27 @@ export function createIndicatorsController({
       isActive: () => true,
       noOpacity: true,
       toggle: () => toggleTheme(),
-      icon: () => getCurrentTheme() === 'dark' ? ICON_MOON : ICON_SUN
+      icon: () => getCurrentTheme() === 'dark' ? ICONS.moon : ICONS.sun
     },
     {
       id: 'kg-autoenter-indicator',
       title: 'Автовход в плавающий режим',
       isActive: () => !!getSetting('autoEnterFloating'),
       toggle: () => toggleAutoEnterFloating(),
-      icon: svgIcon(`
-        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-        <polyline points="10 17 15 12 10 7"/>
-        <line x1="15" y1="12" x2="3" y2="12"/>`)
+      icon: ICONS.autoEnter
+    },
+    {
+      id: 'kg-collapse-indicator',
+      title: () => getSetting('showIndicators') ? 'Скрыть кнопки' : 'Показать кнопки',
+      isActive: () => true,
+      noOpacity: true,
+      alwaysVisible: true,
+      pinRight: true,
+      toggle: () => {
+        setSetting('showIndicators', !getSetting('showIndicators'));
+        updateIndicators();
+      },
+      icon: () => getSetting('showIndicators') ? ICONS.chevronDown : ICONS.chevronUp
     }
   ];
 
@@ -130,6 +111,7 @@ export function createIndicatorsController({
       Object.assign(container.style, {
         position: 'absolute',
         left: '0',
+        right: '0',
         bottom: '-40px',
         gap: '8px',
         display: 'flex',
@@ -165,10 +147,15 @@ export function createIndicatorsController({
     return typeof value === 'function' ? value() : value;
   }
 
-  function syncIndicator({ id, title, icon, isActive, toggle, noOpacity }) {
+  function syncIndicator({ id, title, icon, isActive, toggle, noOpacity, alwaysVisible, pinRight }) {
     const container = getIndicatorContainer();
     if (!container) return;
     if (!isFloatingMode()) {
+      document.getElementById(id)?.remove();
+      return;
+    }
+    const barOpen = getSetting('showIndicators') !== false;
+    if (!alwaysVisible && !barOpen) {
       document.getElementById(id)?.remove();
       return;
     }
@@ -190,6 +177,8 @@ export function createIndicatorsController({
     span.innerHTML = resolve(icon);
     applyIndicatorBaseStyles(span);
     span.style.opacity = noOpacity || isActive() ? '1' : '0.4';
+    // Chevron stays on the right edge of the block
+    span.style.marginLeft = pinRight ? 'auto' : '';
   }
 
   const updateIndicators = () => INDICATORS.forEach(syncIndicator);
@@ -206,20 +195,28 @@ export function createIndicatorsController({
   function showNumericIndicator(value, title = '', updateOnly = false) {
     let span = document.getElementById('kg-numeric-indicator');
     if (!span && updateOnly) return;
+    if (getSetting('showIndicators') === false) {
+      span?.remove();
+      return;
+    }
     const container = getIndicatorContainer();
     if (!container) return;
     ensureFontImport();
     if (!span) {
       span = document.createElement('span');
       span.id = 'kg-numeric-indicator';
-      container.appendChild(span);
+      // Insert before the right-pinned chevron if present
+      const chevron = document.getElementById('kg-collapse-indicator');
+      if (chevron) container.insertBefore(span, chevron);
+      else container.appendChild(span);
     }
     span.title = title;
     applyIndicatorBaseStyles(span);
     Object.assign(span.style, {
       fontFamily: '"Quicksand", sans-serif',
       fontWeight: '600',
-      fontSize: '1.1em'
+      fontSize: '1.1em',
+      marginLeft: ''
     });
     span.innerText = String(value);
     if (updateOnly) return;

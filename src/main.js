@@ -1,7 +1,3 @@
-// Two display modes of the typing block:
-//   native   - the block stays where the site puts it
-//   floating - the block is detached, dimmed background, resizable, movable, themed
-
 import { createMatrixController } from './matrix.js';
 import { createHelpController } from './help.js';
 import { createStatsController } from './stats.js';
@@ -39,7 +35,8 @@ import { createIndicatorsController } from './indicators.js';
     showProgress: true,
     showStats: true,
     theme: 'dark',
-    matrixEffect: false
+    matrixEffect: false,
+    showIndicators: true
   };
 
   // ─── Themes ────────────────────────────────────────────────────────────────
@@ -849,6 +846,7 @@ import { createIndicatorsController } from './indicators.js';
     getCurrentTheme: () => currentTheme,
     isFloatingMode: () => isFloatingMode,
     getSetting,
+    setSetting,
     getSettingsForMode,
     getCurrentModeKey,
     isPartialMode,
