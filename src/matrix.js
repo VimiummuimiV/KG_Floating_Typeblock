@@ -16,7 +16,7 @@ export function createMatrixController({
     fontSize: 16,
     stepInterval: 60,
     opacity: 0.6,
-    trailFade: 0.05,
+    trailFade: 0.03,
     wordChance: 0.01,
     minWordLength: 3,
     glyphColor: '#0F0',
@@ -39,7 +39,11 @@ export function createMatrixController({
   // The effect brings its own dark base, so it is independent of the backdrop dimming level
   const shouldShowMatrix = () => isFloatingMode() && getSetting('matrixEffect');
 
-  const createMatrixColumn = () => ({ y: 1, word: '', pos: 0 });
+  const createMatrixColumn = (maxY = 50) => ({
+    y: Math.floor(Math.random() * maxY) + 1,
+    word: '',
+    pos: 0
+  });
 
   // Whole text is requested once: the page itself reveals the words only as they get typed
   function extractWords(text) {
@@ -59,20 +63,31 @@ export function createMatrixController({
   }
 
   function fadeMatrix(alpha) {
-    const { ctx, canvas } = matrix;
+    const { ctx } = matrix;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
     ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, width, height);
   }
 
-  // Resizing clears the canvas, so the dark base is painted again
+  // Resizing clears the canvas, so the dark base is painted again.
+  // Columns start at random vertical positions for a seamless (no initial wall) look.
+  // High-DPI handling keeps glyphs sharp under browser zoom / retina.
   function resizeMatrix() {
     const { canvas } = matrix;
     if (!canvas) return;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    matrix.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const maxY = Math.floor(height / MATRIX.fontSize) || 50;
     matrix.columns = Array.from(
-      { length: Math.floor(canvas.width / MATRIX.fontSize) || 1 },
-      createMatrixColumn
+      { length: Math.floor(width / MATRIX.fontSize) || 1 },
+      () => createMatrixColumn(maxY)
     );
     fadeMatrix(1);
   }
@@ -95,14 +110,16 @@ export function createMatrixController({
     addEvent(window, 'resize', resizeMatrix);
   }
 
-  // A column prints a whole word letter by letter top to bottom, otherwise random glyphs
+  // A column prints a whole word letter by letter top to bottom, otherwise random glyphs.
+  // Words come only from the game text (API); glyphs stay pure katakana (no digits).
   function stepMatrix() {
-    const { ctx, canvas, columns, words } = matrix;
+    const { ctx, columns, words } = matrix;
     fadeMatrix(MATRIX.trailFade);
     ctx.font = MATRIX.fontSize + 'px monospace';
+    const height = window.innerHeight;
     for (let index = 0; index < columns.length; index++) {
       // A missing column is created on the spot, so a stale or sparse array can never break the animation
-      const column = columns[index] ??= createMatrixColumn();
+      const column = columns[index] ??= createMatrixColumn(Math.floor(height / MATRIX.fontSize) || 50);
       if (!column.word && words.length && Math.random() < MATRIX.wordChance) {
         Object.assign(column, { word: randomItem(words), pos: 0 });
       }
@@ -114,7 +131,7 @@ export function createMatrixController({
         column.y * MATRIX.fontSize
       );
 
-      const wraps = column.y * MATRIX.fontSize > canvas.height && Math.random() > 0.975;
+      const wraps = column.y * MATRIX.fontSize > height && Math.random() > 0.975;
       column.y = wraps ? 1 : column.y + 1;
       if (wraps || (isWord && ++column.pos >= column.word.length)) column.word = '';
     }
