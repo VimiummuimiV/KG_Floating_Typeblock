@@ -32,7 +32,7 @@ const matrix = {
 // All the tuning lives in the settings: { fontSize, stepInterval, opacity, trailFade, wordChance, ... }
 const config = () => getSetting('matrix');
 
-// The effect brings its own dark base, so it is independent of the backdrop dimming level
+// The canvas is transparent: the glyphs have their own opacity, the dimming belongs to the backdrop alone
 const shouldShowMatrix = () => isFloating() && getSetting('matrixEffect');
 
 const getRows = (fontSize) => Math.floor(window.innerHeight / fontSize) || 50;
@@ -79,12 +79,16 @@ const toLetters = (word, direction) => (direction < 0 ? [...word].reverse() : [.
 
 // ─── Canvas ──────────────────────────────────────────────────────────────────
 
+// Makes everything printed so far a bit more transparent
 function fade(alpha) {
-  matrix.ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
-  matrix.ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+  const { ctx } = matrix;
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+  ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+  ctx.globalCompositeOperation = 'source-over';
 }
 
-// Resizing clears the canvas, so the dark base is painted again.
+// Resizing clears the canvas.
 // Columns start at random vertical positions for a seamless (no initial wall) look.
 // High-DPI handling keeps glyphs sharp under browser zoom / retina.
 function resizeMatrix() {
@@ -104,7 +108,6 @@ function resizeMatrix() {
   matrix.trail = [];
   matrix.columns = times(Math.floor(width / fontSize) || 1, () => createColumn(rows));
   matrix.grid = { fontSize, fallStyle };
-  fade(1);
 }
 
 function ensureCanvas() {
@@ -132,8 +135,7 @@ const paint = ({ ch, x, y }, color) => {
 };
 
 function clearCell({ x, y }, size) {
-  matrix.ctx.fillStyle = '#000';
-  matrix.ctx.fillRect(x - size / 2, y - size, size, size * CELL_CLEAR_HEIGHT);
+  matrix.ctx.clearRect(x - size / 2, y - size, size, size * CELL_CLEAR_HEIGHT);
 }
 
 // A column prints a whole word letter by letter along its way, otherwise random glyphs.
@@ -173,7 +175,7 @@ function drawGlyph(column, index, row, settings) {
   column.prev = cell;
 }
 
-// Fading toward black stalls: a pixel too dim to change by rounding in 8 bits stays forever, and the dimmer
+// Fading stalls: a pixel too faint to change by rounding in 8 bits stays forever, and the fainter
 // the fade step the brighter that level is. Left alone these leftovers pile up into gray smudges,
 // so every cell is erased once it has faded down to that level.
 function eraseFaded({ fontSize, trailFade }) {

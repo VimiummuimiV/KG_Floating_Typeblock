@@ -59,4 +59,10 @@ $z-toast: 2200;
   &:focus-visible {
     border-color: var(--kg-text-focus);
   }
+
+  // Same selection as in the typing input
+  &::selection {
+    background: var(--kg-input-normal-selection-background);
+    color: var(--kg-input-normal-selection-text);
+  }
 }
