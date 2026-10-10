@@ -1,7 +1,7 @@
 import { showNumericIndicator, updateButtons } from './buttons.js';
 import { toggleSetting, toggleTheme } from './actions.js';
 import {
-  alignInput, enterFloating, exitFloating, syncContent, syncLayoutVars, toggleFloating
+  alignInput, enterFloating, exitFloating, softenBackdrop, syncContent, syncLayoutVars, toggleFloating
 } from './floating.js';
 import { openReplay } from './game.js';
 import { helpPanel, setupHelpHover } from './help.js';
@@ -56,6 +56,7 @@ const REACTIONS = {
     updateButtons();
   },
   matrixEffect: () => {
+    softenBackdrop();
     updateMatrixEffect();
     syncLayoutVars();
     updateButtons();

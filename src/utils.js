@@ -1,4 +1,6 @@
 export const FLOATING_CLASS = 'kg-floating';
+// Short softening of abrupt switches (the matrix effect on and off)
+export const FADE_MS = 300;
 
 // ─── Math / data ─────────────────────────────────────────────────────────────
 

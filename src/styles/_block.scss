@@ -36,6 +36,10 @@ html.kg-floating {
       cursor: ns-resize,
       user-select: none
     ));
+
+    &.kg-fading {
+      transition: background-color var(--kg-fade) ease-out;
+    }
   }
 
   #main-block {

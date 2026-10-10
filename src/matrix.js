@@ -1,7 +1,7 @@
 import { fetchGameText, getGameId } from './game.js';
 import { FALL_STYLES, resolveGlyphs } from './matrix-presets.js';
 import { getSetting } from './settings.js';
-import { createElement, isFloating, randomItem, times } from './utils.js';
+import { FADE_MS, createElement, isFloating, randomItem, times } from './utils.js';
 
 // Chance per step that a column past the edge starts over
 const RESPAWN_CHANCE = 0.025;
@@ -17,6 +17,7 @@ const matrix = {
   canvas: null,
   ctx: null,
   raf: null,
+  exit: null,
   columns: [],
   trail: [],
   step: 0,
@@ -227,16 +228,20 @@ function startMatrixAnimation() {
   loadWords();
   matrix.canvas.style.display = 'block';
   // The closing keyframe is implicit: it follows the opacity setting even if that changes meanwhile
-  const { fadeIn } = config();
-  if (fadeIn) matrix.canvas.animate([{ opacity: 0 }, {}], { duration: fadeIn * 1000, easing: 'ease-in' });
+  matrix.exit?.cancel();
+  matrix.canvas.animate([{ opacity: 0 }, {}], { duration: Math.max(config().fadeIn * 1000, FADE_MS), easing: 'ease-in' });
   matrix.lastStep = 0;
   matrix.raf = requestAnimationFrame(matrixFrame);
 }
 
+// The last frame fades out; a start in the meantime takes over (see startMatrixAnimation)
 function stopMatrixAnimation() {
+  if (matrix.raf === null) return;
   cancelAnimationFrame(matrix.raf);
   matrix.raf = null;
-  if (matrix.canvas) matrix.canvas.style.display = 'none';
+  const { canvas } = matrix;
+  matrix.exit = canvas.animate([{}, { opacity: 0 }], { duration: FADE_MS, easing: 'ease-out' });
+  matrix.exit.finished.then(() => { if (matrix.raf === null) canvas.style.display = 'none'; }, () => {});
 }
 
 // Start, stop or re-tune: called on entering the floating mode and whenever a matrix setting changes

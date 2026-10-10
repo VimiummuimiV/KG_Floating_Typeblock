@@ -8,7 +8,7 @@ import { removeStats, updateStats } from './stats.js';
 import { applyTheme, getElementsFilter } from './theme.js';
 import { refreshTextView } from './text-view.js';
 import {
-  FLOATING_CLASS, byId, clamp, createElement, createListenerScope, eventHits, formatToggle,
+  FADE_MS, FLOATING_CLASS, byId, clamp, createElement, createListenerScope, eventHits, formatToggle,
   isFloating, setCssVars, setImportant
 } from './utils.js';
 
@@ -19,13 +19,14 @@ const DRAG_IGNORED = ['inputtext', 'kg-stats-wrap', 'kg-buttons-wrap'];
 const INLINE_RESET = ['typeblock', 'typetext', 'inputtext', 'inputtextblock', 'typefocus'];
 
 // scope: listeners of the floating mode, removed together on exit
-const floating = { scope: createListenerScope(), backdrop: null };
+const floating = { scope: createListenerScope(), backdrop: null, fadeTimer: 0 };
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
 // Everything the stylesheet needs to know about the current settings
 export function syncLayoutVars() {
   setCssVars({
+    '--kg-fade': `${FADE_MS}ms`,
     '--kg-dimming': getSetting(dimmingPath()) / 100,
     '--kg-main-width': `${getSetting('mainBlockWidth')}vw`,
     '--kg-main-top': `${getSetting('mainBlockPosition')}vh`,
@@ -75,6 +76,15 @@ export function syncContent() {
   }
   refreshTextView();
   syncPanelAnchors();
+}
+
+// The backdrop changes its dimming level softly for a moment (not while it is dragged, that must follow the pointer)
+export function softenBackdrop() {
+  const { backdrop } = floating;
+  if (!backdrop) return;
+  backdrop.classList.add('kg-fading');
+  clearTimeout(floating.fadeTimer);
+  floating.fadeTimer = setTimeout(() => backdrop.classList.remove('kg-fading'), FADE_MS);
 }
 
 // ─── Backdrop and block drag ─────────────────────────────────────────────────
