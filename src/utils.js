@@ -27,6 +27,10 @@ export function createElement(tag, properties = {}, ...children) {
   return element;
 }
 
+// The site must not treat characters typed into our inputs as game input
+export const isolateKeys = (input) => ['keydown', 'keypress', 'keyup'].forEach((type) =>
+  input.addEventListener(type, (event) => event.stopPropagation()));
+
 export function setCssVars(vars) {
   const { style } = document.documentElement;
   Object.entries(vars).forEach(([name, value]) => style.setProperty(name, value));

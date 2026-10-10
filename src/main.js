@@ -103,7 +103,7 @@ const HOTKEYS = {
 
 function onKeydown(event) {
   // Typing in the panels must not trigger the game hotkeys
-  if (event.repeat || (!event.altKey && event.target.closest?.('.kg-panel'))) return;
+  if (event.repeat || (!event.altKey && event.target.closest?.('.kg-panel, .kg-popup'))) return;
   if (event.ctrlKey && (event.key === 'Enter' || event.code === 'Enter')) openReplay();
   if (!isSettingsReady()) return;
 

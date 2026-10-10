@@ -6,15 +6,20 @@ import { createElement, isFloating, randomItem, times } from './utils.js';
 // Chance per step that a column past the edge starts over
 const RESPAWN_CHANCE = 0.025;
 const CELL_CLEAR_HEIGHT = 1.25;
+// Brightness (of 255) below which a faded cell is not worth waiting for
+const MIN_ERASE_LEVEL = 8;
 
 // columns: falling streams { y, row, speed, dir, word, pos, prev }
 // tokens:  every word of the current game text, loaded once per game; words: those long enough
+// trail:   printed cells in order of age, erased once they have faded; step counts the frames drawn
 // grid:    what the columns were built for (font size and fall style), a change rebuilds them
 const matrix = {
   canvas: null,
   ctx: null,
   raf: null,
   columns: [],
+  trail: [],
+  step: 0,
   lastStep: 0,
   gameId: null,
   tokens: [],
@@ -96,6 +101,7 @@ function resizeMatrix() {
   ctx.font = fontSize + 'px monospace';
   ctx.textAlign = 'center';
   const rows = getRows(fontSize);
+  matrix.trail = [];
   matrix.columns = times(Math.floor(width / fontSize) || 1, () => createColumn(rows));
   matrix.grid = { fontSize, fallStyle };
   fade(1);
@@ -147,8 +153,10 @@ function drawGlyph(column, index, row, settings) {
     ch: letter ?? randomItem(glyphs),
     x: (slot + columns.length) % columns.length * size + size / 2,
     y: row * size,
-    color
+    color,
+    step: matrix.step
   };
+  matrix.trail.push(cell);
   if (letter && ++column.pos >= column.word.length) column.word = [];
 
   if (!brightHead) {
@@ -165,10 +173,24 @@ function drawGlyph(column, index, row, settings) {
   column.prev = cell;
 }
 
+// Fading toward black stalls: a pixel too dim to change by rounding in 8 bits stays forever, and the dimmer
+// the fade step the brighter that level is. Left alone these leftovers pile up into gray smudges,
+// so every cell is erased once it has faded down to that level.
+function eraseFaded({ fontSize, trailFade }) {
+  const { trail, step } = matrix;
+  const level = Math.max(0.5 / trailFade, MIN_ERASE_LEVEL);
+  const lifetime = Math.log(level / 255) / Math.log(1 - trailFade);
+  let expired = 0;
+  while (expired < trail.length && step - trail[expired].step > lifetime) clearCell(trail[expired++], fontSize);
+  trail.splice(0, expired);
+}
+
 function stepMatrix() {
   const settings = config();
   const rows = getRows(settings.fontSize);
+  matrix.step++;
   fade(settings.trailFade);
+  eraseFaded(settings);
   matrix.columns.forEach((column, index) => {
     column.y += column.dir * column.speed;
     const row = Math.floor(column.y);
@@ -227,5 +249,5 @@ export function destroyMatrix() {
   stopMatrixAnimation();
   window.removeEventListener('resize', resizeMatrix);
   matrix.canvas?.remove();
-  Object.assign(matrix, { canvas: null, ctx: null, columns: [], grid: null });
+  Object.assign(matrix, { canvas: null, ctx: null, columns: [], trail: [], grid: null });
 }

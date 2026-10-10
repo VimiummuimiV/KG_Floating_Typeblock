@@ -16,7 +16,7 @@ export const syncPanelAnchors = () => panels.forEach((panel) => panel.syncAnchor
  * @param {object} options
  * @param {string} options.name - suffix of the CSS class
  * @param {string} options.storageKey
- * @param {'left'|'right'} [options.align] - which edge of the input the default position aligns to
+ * @param {'left'|'right'|'center'} [options.align] - which edge of the input the default position aligns to; center: the middle of the screen
  * @param {Array<{className, title, icon, onClick}>} [options.actions] - extra buttons of the header
  * @param {() => boolean} [options.canOpen]
  * @param {(content: HTMLElement) => void} options.render - fills (or updates) the content
@@ -58,8 +58,9 @@ export function createPanel({ name, storageKey, align = 'left', actions = [], ca
   }
 
   function getDefaultPoint() {
-    const rect = byId('inputtext')?.getBoundingClientRect();
     const { width, height } = measure();
+    if (align === 'center') return clampPoint((window.innerWidth - width) / 2, (window.innerHeight - height) / 2);
+    const rect = byId('inputtext')?.getBoundingClientRect();
     let top = rect ? rect.bottom + MARGIN : MARGIN;
     if (top + height > window.innerHeight) top = (rect ? rect.top : window.innerHeight) - height - MARGIN;
     let left = (window.innerWidth - width) / 2;

@@ -8,7 +8,7 @@ import { settingsPanel } from './settings-panel.js';
 import { THEME_NAMES } from './theme.js';
 import { byId, createElement, isFloating } from './utils.js';
 
-const COLLAPSE_HIDE_DELAY = 2000;
+const COLLAPSE_HIDE_DELAY = 500;
 const INDICATOR_DELAY = 3000;
 const SLIDE = { distance: 36 };
 const FONT_URL = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap';

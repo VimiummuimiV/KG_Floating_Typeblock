@@ -1,21 +1,19 @@
 import { showToast } from './actions.js';
+import { createCheckbox, createColorPicker, createSelect, createSlider } from './controls.js';
 import { ICONS } from './icons.js';
 import { createPanel } from './panel.js';
 import { SCHEMA, SECTIONS, exportSettings, getSetting, importSettings, isSettingsReady, resetSettings, setSetting } from './settings.js';
-import { createElement, downloadJson, pickTextFile } from './utils.js';
+import { createElement, downloadJson, isolateKeys, pickTextFile } from './utils.js';
 
 const FILE_NAME = 'kg-typeblock-settings.json';
-const KEY_EVENTS = ['keydown', 'keypress', 'keyup'];
-
-// Every control writes to the settings right away and reports back how to show a value;
-// the change listener refreshes all other controls and the game itself
-const NUMBER_HINT = 'Двойной клик — ввести значение';
-const RESET_HINT = 'Двойной клик — значение по умолчанию';
+const RESET_LABEL = 'Сбросить настройки';
+const RESET_CONFIRM_LABEL = 'Нажмите ещё раз, чтобы сбросить всё';
+const RESET_CONFIRM_DELAY = 3000;
 
 // The value readout turns into an input for an exact value: Enter or leaving applies, Escape cancels
 function editExactValue(path, { min, max, step }, output) {
   const entry = createElement('input', { type: 'number', className: 'kg-range-entry', min, max, step, value: getSetting(path) });
-  KEY_EVENTS.forEach((type) => entry.addEventListener(type, (event) => event.stopPropagation()));
+  isolateKeys(entry);
   let isDone = false;
   const finish = (isApplied) => {
     if (isDone) return;
@@ -33,83 +31,98 @@ function editExactValue(path, { min, max, step }, output) {
   entry.select();
 }
 
+// Every control writes to the settings right away; the change listener refreshes all other controls and the game itself
 const CONTROLS = {
-  bool: (path) => {
-    const input = createElement('input', { type: 'checkbox' });
-    input.addEventListener('change', () => setSetting(path, input.checked));
-    return { element: input, set: (value) => { input.checked = value; } };
-  },
+  bool: (path) => createCheckbox((value) => setSetting(path, value)),
 
   number: (path, field) => {
-    const { min, max, step, unit } = field;
-    const input = createElement('input', { type: 'range', min, max, step, title: RESET_HINT });
-    const output = createElement('output', { title: NUMBER_HINT });
-    input.addEventListener('input', () => setSetting(path, Number(input.value)));
-    input.addEventListener('dblclick', () => setSetting(path, field.default));
+    const slider = createSlider(field, (value) => setSetting(path, value));
+    const output = createElement('output');
     output.addEventListener('dblclick', () => editExactValue(path, field, output));
     return {
-      element: createElement('div', { className: 'kg-range' }, input, output),
+      element: createElement('div', { className: 'kg-range' }, slider.element, output),
       set: (value) => {
-        input.value = value;
-        output.textContent = value + unit;
+        slider.set(value);
+        output.textContent = value + field.unit;
       }
     };
   },
 
-  color: (path) => {
-    const input = createElement('input', { type: 'color' });
-    input.addEventListener('input', () => setSetting(path, input.value));
-    return { element: input, set: (value) => { input.value = value; } };
-  },
+  color: (path) => createColorPicker((value) => setSetting(path, value)),
 
-  choice: (path, { options }) => {
-    const select = createElement('select', {}, ...Object.entries(options).map(([value, label]) =>
-      createElement('option', { value, textContent: label })));
-    select.addEventListener('change', () => setSetting(path, select.value));
-    return { element: select, set: (value) => { select.value = value; } };
-  },
+  choice: (path, { options }) => createSelect(options, (value) => setSetting(path, value)),
 
   text: (path, { maxLength }) => {
     const input = createElement('input', { type: 'text', maxLength, spellcheck: false });
-    // The site must not treat typed characters as game input
-    KEY_EVENTS.forEach((type) => input.addEventListener(type, (event) => event.stopPropagation()));
+    isolateKeys(input);
     input.addEventListener('input', () => setSetting(path, input.value));
     return { element: input, set: (value) => { if (document.activeElement !== input) input.value = value; } };
   }
 };
 
+// The first click arms the button, the second one resets everything
+function createResetButton() {
+  let timer = 0;
+  const button = createElement('button', { type: 'button', className: 'kg-settings-reset', textContent: RESET_LABEL });
+  const disarm = () => {
+    clearTimeout(timer);
+    timer = 0;
+    button.textContent = RESET_LABEL;
+  };
+  button.addEventListener('click', () => {
+    if (timer) {
+      disarm();
+      resetSettings();
+      return;
+    }
+    button.textContent = RESET_CONFIRM_LABEL;
+    timer = setTimeout(disarm, RESET_CONFIRM_DELAY);
+  });
+  return button;
+}
+
 const rows = [];
 
 const isVisible = ({ visibleIf }) => !visibleIf || getSetting(visibleIf[0]) === visibleIf[1];
 
+// Hidden: the condition of the setting is not met, or its section is collapsed
+const syncRows = () => rows.forEach(({ field, row, heading }) => {
+  row.hidden = !isVisible(field) || heading.classList.contains('kg-collapsed');
+});
+
 function build(content) {
   SECTIONS.forEach(({ title, fields }) => {
-    content.append(createElement('div', { className: 'kg-settings-heading', textContent: title }));
+    const heading = createElement('button', { type: 'button', className: 'kg-settings-heading', textContent: title });
+    heading.addEventListener('click', () => {
+      heading.classList.toggle('kg-collapsed');
+      syncRows();
+    });
+    content.append(heading);
     fields.forEach((path) => {
       const field = SCHEMA[path];
       const control = CONTROLS[field.type](path, field);
       const row = createElement('label', { className: `kg-setting kg-setting-${field.type}` },
         createElement('span', { className: 'kg-setting-label', textContent: field.label }),
         control.element);
+      // Alt + click anywhere on the row resets this one setting
+      row.addEventListener('click', (event) => {
+        if (!event.altKey) return;
+        event.preventDefault();
+        event.stopPropagation();
+        setSetting(path, field.default);
+      }, true);
       content.append(row);
-      rows.push({ field, path, row, set: control.set });
+      rows.push({ field, path, row, heading, set: control.set });
     });
   });
-  content.append(createElement('button', {
-    type: 'button',
-    className: 'kg-settings-reset',
-    textContent: 'Сбросить настройки',
-    onclick: () => window.confirm('Вернуть все настройки к значениям по умолчанию?') && resetSettings()
-  }));
+  content.append(createResetButton());
 }
 
 // Built once, afterwards only the values are synced, so a control being dragged is never recreated
 function render(content) {
   if (!rows.length) build(content);
-  rows.forEach(({ field, path, row, set }) => {
-    set(getSetting(path));
-    row.hidden = !isVisible(field);
-  });
+  rows.forEach(({ path, set }) => set(getSetting(path)));
+  syncRows();
 }
 
 async function importFromFile() {
@@ -131,7 +144,7 @@ function exportToFile() {
 export const settingsPanel = createPanel({
   name: 'settings',
   storageKey: 'kg-typeblock-settings-panel',
-  align: 'right',
+  align: 'center',
   canOpen: isSettingsReady,
   render,
   actions: [

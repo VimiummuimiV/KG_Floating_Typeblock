@@ -69,6 +69,7 @@
   border: 2px solid var(--kg-border-color);
   border-radius: $radius;
   box-shadow: var(--kg-shadow-small);
+  filter: var(--kg-elements-filter, none);
   pointer-events: none;
 }
 
@@ -127,6 +128,7 @@
 }
 
 @include meta.load-css('help');
+@include meta.load-css('controls');
 @include meta.load-css('settings');
 @include meta.load-css('block');
 @include meta.load-css('stats');

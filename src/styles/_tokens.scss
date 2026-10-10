@@ -4,6 +4,7 @@ $radius: 0.4em;
 $z-dimming: 2000;
 $z-block: 2010;
 $z-panel: 2150;
+$z-popup: 2160;
 $z-toast: 2200;
 
 // Rules that touch elements of the site must win over its stylesheets
@@ -21,4 +22,11 @@ $z-toast: 2200;
   @if $gap {
     gap: $gap;
   }
+}
+
+@mixin themed-control {
+  border: 1px solid var(--kg-border-color);
+  border-radius: 0.3em;
+  background: var(--kg-input-normal-background);
+  color: var(--kg-input-normal-text);
 }

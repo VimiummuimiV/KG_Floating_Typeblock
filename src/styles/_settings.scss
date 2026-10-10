@@ -1,12 +1,5 @@
 @use 'tokens' as *;
 
-@mixin themed-control {
-  border: 1px solid var(--kg-border-color);
-  border-radius: 0.3em;
-  background: var(--kg-input-normal-background);
-  color: var(--kg-input-normal-text);
-}
-
 .kg-panel.kg-panel-settings {
   // Width follows the content like the help panel does, but never gets cramped
   @include important((
@@ -16,10 +9,33 @@
 
   .kg-settings {
     &-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
       margin: 14px 0 6px;
+      padding: 0;
+      border: none;
       border-bottom: 1px solid var(--kg-border-color);
+      background: none;
+      font: inherit;
       font-weight: bold;
       color: var(--kg-help-heading);
+      cursor: pointer;
+
+      &::after {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border: solid currentColor;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+        transition: transform 0.2s ease;
+      }
+
+      &.kg-collapsed::after {
+        transform: rotate(-45deg);
+      }
 
       &:first-child {
         margin-top: 0;
@@ -62,10 +78,6 @@
       align-items: center;
       gap: 8px;
 
-      input[type='range'] {
-        width: 130px;
-      }
-
       output,
       &-entry {
         min-width: 48px;
@@ -81,37 +93,23 @@
         width: 72px;
         padding: 1px 4px;
         font: inherit;
+        appearance: textfield;
+
+        &::-webkit-inner-spin-button,
+        &::-webkit-outer-spin-button {
+          appearance: none;
+          margin: 0;
+        }
       }
     }
 
-    input {
-      &[type='range'],
-      &[type='checkbox'] {
-        accent-color: var(--kg-text-focus);
-        cursor: pointer;
-      }
-
-      &[type='text'] {
-        user-select: text;
-      }
-
-      &[type='color'] {
-        @include themed-control;
-        width: 44px;
-        height: 24px;
-        padding: 0;
-        background: none;
-        cursor: pointer;
-      }
-    }
-
-    select,
     input[type='text'] {
       @include themed-control;
       box-sizing: border-box;
       width: 180px;
       padding: 3px 6px;
       font: inherit;
+      user-select: text;
     }
   }
 }
