@@ -27,6 +27,7 @@ export const SCHEMA = {
   dimming: number('Затемнение фона', 50, 0, 100, 1, '%'),
   matrixEffect: bool('Эффект матрицы', false),
   'matrix.dimming': number('Затемнение фона', 50, 0, 100, 1, '%'),
+  'matrix.fadeIn': number('Плавный набор яркости', 2, 0, 10, 0.5, 'с'),
   'matrix.glyphSet': choice('Набор символов', 'katakana', GLYPH_OPTIONS),
   'matrix.digits': bool('Добавить цифры', false),
   'matrix.customGlyphs': text('Свои символы', '', 100, { visibleIf: ['matrix.glyphSet', 'custom'] }),
@@ -43,9 +44,10 @@ export const SCHEMA = {
   'matrix.headColor': color('Цвет «головы»', '#ffffff', { visibleIf: ['matrix.brightHead', true] })
 };
 
-// Layout of the settings panel
+// Layout of the settings panel: a field is a path, { subheading } starts a group inside the section
 export const SECTIONS = [
   {
+    id: 'general',
     title: 'Общие',
     fields: [
       'dimming', 'fontSize', 'mainBlockWidth', 'mainBlockPosition', 'autoEnterFloating',
@@ -53,11 +55,17 @@ export const SECTIONS = [
     ]
   },
   {
+    id: 'matrix',
     title: 'Матрица',
     fields: [
-      'matrixEffect', 'matrix.dimming', 'matrix.glyphSet', 'matrix.customGlyphs', 'matrix.digits', 'matrix.fallStyle',
-      'matrix.fontSize', 'matrix.stepInterval', 'matrix.opacity', 'matrix.trailFade',
-      'matrix.wordChance', 'matrix.minWordLength', 'matrix.glyphColor', 'matrix.wordColor',
+      'matrixEffect', 'matrix.dimming', 'matrix.fadeIn',
+      { subheading: 'Символы' },
+      'matrix.glyphSet', 'matrix.customGlyphs', 'matrix.digits', 'matrix.fontSize', 'matrix.opacity', 'matrix.glyphColor',
+      { subheading: 'Падение' },
+      'matrix.fallStyle', 'matrix.stepInterval', 'matrix.trailFade',
+      { subheading: 'Слова' },
+      'matrix.wordChance', 'matrix.minWordLength', 'matrix.wordColor',
+      { subheading: 'Голова потока' },
       'matrix.brightHead', 'matrix.headColor'
     ]
   }

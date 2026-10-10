@@ -226,6 +226,9 @@ function startMatrixAnimation() {
   matrix.grid = null;
   loadWords();
   matrix.canvas.style.display = 'block';
+  // The closing keyframe is implicit: it follows the opacity setting even if that changes meanwhile
+  const { fadeIn } = config();
+  if (fadeIn) matrix.canvas.animate([{ opacity: 0 }, {}], { duration: fadeIn * 1000, easing: 'ease-in' });
   matrix.lastStep = 0;
   matrix.raf = requestAnimationFrame(matrixFrame);
 }

@@ -3,9 +3,11 @@ import { createCheckbox, createColorPicker, createSelect, createSlider } from '.
 import { ICONS } from './icons.js';
 import { createPanel } from './panel.js';
 import { SCHEMA, SECTIONS, exportSettings, getSetting, importSettings, isSettingsReady, resetSettings, setSetting } from './settings.js';
-import { createElement, downloadJson, isolateKeys, pickTextFile } from './utils.js';
+import { createElement, downloadJson, isolateKeys, pickTextFile, readStorage, writeStorage } from './utils.js';
 
 const FILE_NAME = 'kg-typeblock-settings.json';
+// Shared with the panel: { open, left, top, collapsed: [section ids] }
+const STORAGE_KEY = 'kg-typeblock-settings-panel';
 const RESET_LABEL = 'Сбросить настройки';
 const RESET_CONFIRM_LABEL = 'Нажмите ещё раз, чтобы сбросить всё';
 const RESET_CONFIRM_DELAY = 3000;
@@ -82,37 +84,62 @@ function createResetButton() {
 }
 
 const rows = [];
+const sections = [];
+const subheadings = [];
+const collapsed = new Set();
 
 const isVisible = ({ visibleIf }) => !visibleIf || getSetting(visibleIf[0]) === visibleIf[1];
 
-// Hidden: the condition of the setting is not met, or its section is collapsed
-const syncRows = () => rows.forEach(({ field, row, heading }) => {
-  row.hidden = !isVisible(field) || heading.classList.contains('kg-collapsed');
-});
+// Hidden: the condition of the setting is not met, or its section is collapsed.
+// A subheading goes together with the last of its settings.
+function syncRows() {
+  sections.forEach(({ id, heading }) => heading.classList.toggle('kg-collapsed', collapsed.has(id)));
+  rows.forEach(({ field, row, sectionId }) => { row.hidden = !isVisible(field) || collapsed.has(sectionId); });
+  subheadings.forEach(({ element, members }) => { element.hidden = members.every(({ row }) => row.hidden); });
+}
+
+function toggleSection(id) {
+  if (!collapsed.delete(id)) collapsed.add(id);
+  writeStorage(STORAGE_KEY, { ...readStorage(STORAGE_KEY), collapsed: [...collapsed] });
+  syncRows();
+}
+
+function createRow(path, field) {
+  const control = CONTROLS[field.type](path, field);
+  const row = createElement('div', { className: `kg-setting kg-setting-${field.type}` },
+    createElement('span', { className: 'kg-setting-label', textContent: field.label }),
+    control.element);
+  // Alt + click anywhere on the row resets this one setting
+  row.addEventListener('click', (event) => {
+    if (!event.altKey) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setSetting(path, field.default);
+  }, true);
+  return { field, path, row, set: control.set };
+}
 
 function build(content) {
-  SECTIONS.forEach(({ title, fields }) => {
+  const stored = readStorage(STORAGE_KEY).collapsed;
+  if (Array.isArray(stored)) stored.forEach((id) => collapsed.add(id));
+
+  SECTIONS.forEach(({ id, title, fields }) => {
     const heading = createElement('button', { type: 'button', className: 'kg-settings-heading', textContent: title });
-    heading.addEventListener('click', () => {
-      heading.classList.toggle('kg-collapsed');
-      syncRows();
-    });
+    heading.addEventListener('click', () => toggleSection(id));
+    sections.push({ id, heading });
     content.append(heading);
-    fields.forEach((path) => {
-      const field = SCHEMA[path];
-      const control = CONTROLS[field.type](path, field);
-      const row = createElement('div', { className: `kg-setting kg-setting-${field.type}` },
-        createElement('span', { className: 'kg-setting-label', textContent: field.label }),
-        control.element);
-      // Alt + click anywhere on the row resets this one setting
-      row.addEventListener('click', (event) => {
-        if (!event.altKey) return;
-        event.preventDefault();
-        event.stopPropagation();
-        setSetting(path, field.default);
-      }, true);
-      content.append(row);
-      rows.push({ field, path, row, heading, set: control.set });
+    let subheading = null;
+    fields.forEach((entry) => {
+      if (entry.subheading) {
+        subheading = { element: createElement('div', { className: 'kg-settings-subheading', textContent: entry.subheading }), members: [] };
+        subheadings.push(subheading);
+        content.append(subheading.element);
+        return;
+      }
+      const setting = { ...createRow(entry, SCHEMA[entry]), sectionId: id };
+      subheading?.members.push(setting);
+      rows.push(setting);
+      content.append(setting.row);
     });
   });
   content.append(createResetButton());
@@ -143,7 +170,7 @@ function exportToFile() {
 
 export const settingsPanel = createPanel({
   name: 'settings',
-  storageKey: 'kg-typeblock-settings-panel',
+  storageKey: STORAGE_KEY,
   align: 'center',
   canOpen: isSettingsReady,
   render,

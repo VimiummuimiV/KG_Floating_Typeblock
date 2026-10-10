@@ -39,7 +39,8 @@ const themes = {
       heading: 'hsl(40, 80%, 70%)',
       on: 'hsl(140, 80%, 60%)',
       off: 'hsl(0, 85%, 65%)',
-      value: 'hsl(200, 70%, 70%)'
+      value: 'hsl(200, 70%, 70%)',
+      subheading: 'hsl(270, 45%, 75%)'
     },
     input: {
       normal: createInputState('hsl(120, 15%, 25%)', 'hsl(120, 15%, 75%)'),
@@ -65,7 +66,8 @@ const themes = {
       heading: 'hsl(30, 80%, 35%)',
       on: 'hsl(140, 70%, 30%)',
       off: 'hsl(0, 75%, 45%)',
-      value: 'hsl(210, 70%, 40%)'
+      value: 'hsl(210, 70%, 40%)',
+      subheading: 'hsl(270, 40%, 40%)'
     },
     input: {
       normal: createInputState('hsl(150, 30%, 70%)', 'hsl(150, 30%, 20%)'),

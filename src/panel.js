@@ -101,7 +101,7 @@ export function createPanel({ name, storageKey, align = 'left', actions = [], ca
 
   // ─── Persistence ───────────────────────────────────────────────────────────
 
-  const save = () => writeStorage(storageKey, { open: state.pinned, left: state.position?.left, top: state.position?.top });
+  const save = () => writeStorage(storageKey, { ...readStorage(storageKey), open: state.pinned, left: state.position?.left, top: state.position?.top });
 
   function restore() {
     const { open, left, top } = readStorage(storageKey);
