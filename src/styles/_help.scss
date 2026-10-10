@@ -1,0 +1,24 @@
+// Statuses and keywords take their color from the theme
+$help-colors: (key: value, value: value, on: on, off: off);
+
+.kg-panel-help {
+  .kg-help {
+    &-heading {
+      margin: 0 0 4px;
+      border-bottom: 1px solid var(--kg-border-color);
+      font-weight: bold;
+      color: var(--kg-help-heading);
+
+      &:not(:first-child) {
+        margin-top: 10px;
+      }
+    }
+
+    @each $type, $color in $help-colors {
+      &-#{$type} {
+        font-weight: bold;
+        color: var(--kg-help-#{$color});
+      }
+    }
+  }
+}

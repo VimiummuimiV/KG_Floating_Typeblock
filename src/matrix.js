@@ -1,177 +1,231 @@
-export function createMatrixController({
-  getSetting,
-  isFloatingMode,
-  addEvent,
-  getGameId,
-  fetchGameText,
-  randomItem,
-  createElement
-}) {
-  // ─── Constants ───────────────────────────────────────────────────────────
-  const MATRIX = {
-    fontSize: 16,
-    stepInterval: 60,
-    opacity: 0.6,
-    trailFade: 0.03,
-    wordChance: 0.01,
-    minWordLength: 3,
-    glyphColor: '#0F0',
-    wordColor: '#CFC',
-    glyphs: 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン'
+import { fetchGameText, getGameId } from './game.js';
+import { FALL_STYLES, resolveGlyphs } from './matrix-presets.js';
+import { getSetting } from './settings.js';
+import { createElement, isFloating, randomItem, times } from './utils.js';
+
+// Chance per step that a column past the edge starts over
+const RESPAWN_CHANCE = 0.025;
+const CELL_CLEAR_HEIGHT = 1.25;
+
+// columns: falling streams { y, row, speed, dir, word, pos, prev }
+// tokens:  every word of the current game text, loaded once per game; words: those long enough
+// grid:    what the columns were built for (font size and fall style), a change rebuilds them
+const matrix = {
+  canvas: null,
+  ctx: null,
+  raf: null,
+  columns: [],
+  lastStep: 0,
+  gameId: null,
+  tokens: [],
+  words: [],
+  minLength: null,
+  glyphs: [],
+  grid: null
+};
+
+// All the tuning lives in the settings: { fontSize, stepInterval, opacity, trailFade, wordChance, ... }
+const config = () => getSetting('matrix');
+
+// The effect brings its own dark base, so it is independent of the backdrop dimming level
+const shouldShowMatrix = () => isFloating() && getSetting('matrixEffect');
+
+const getRows = (fontSize) => Math.floor(window.innerHeight / fontSize) || 50;
+
+function createColumn(rows) {
+  const { speed: [slowest, fastest], direction } = FALL_STYLES[config().fallStyle];
+  return {
+    y: Math.floor(Math.random() * rows) + 1,
+    row: 0,
+    speed: slowest + Math.random() * (fastest - slowest),
+    dir: direction || (Math.random() < 0.5 ? 1 : -1),
+    word: [],
+    pos: 0,
+    prev: null
   };
+}
 
-  // columns: falling streams { y, word, pos }
-  // words:   cache of the current game text, loaded once per game
-  const matrix = {
-    canvas: null,
-    ctx: null,
-    raf: null,
-    columns: [],
-    lastStep: 0,
-    gameId: null,
-    words: []
+// ─── Words ───────────────────────────────────────────────────────────────────
+
+// Whole text is requested once: the page itself reveals the words only as they get typed
+const extractTokens = (text) => [...new Set(
+  text.split(/\s+/).map((word) => word.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')).filter(Boolean)
+)];
+
+function filterWords() {
+  matrix.minLength = config().minWordLength;
+  matrix.words = matrix.tokens.filter((word) => word.length >= matrix.minLength);
+}
+
+async function loadWords() {
+  const gameId = getGameId();
+  if (!gameId || matrix.gameId === gameId) return;
+  matrix.gameId = gameId;
+  try {
+    matrix.tokens = extractTokens(await fetchGameText(gameId));
+    filterWords();
+  } catch {
+    matrix.gameId = null;
+  }
+}
+
+// A word of a rising column is laid out bottom to top, so it still reads top to bottom
+const toLetters = (word, direction) => (direction < 0 ? [...word].reverse() : [...word]);
+
+// ─── Canvas ──────────────────────────────────────────────────────────────────
+
+function fade(alpha) {
+  matrix.ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+  matrix.ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+}
+
+// Resizing clears the canvas, so the dark base is painted again.
+// Columns start at random vertical positions for a seamless (no initial wall) look.
+// High-DPI handling keeps glyphs sharp under browser zoom / retina.
+function resizeMatrix() {
+  const { canvas, ctx } = matrix;
+  if (!canvas) return;
+  const { fontSize, fallStyle } = config();
+  const dpr = window.devicePixelRatio || 1;
+  const { innerWidth: width, innerHeight: height } = window;
+  canvas.width = Math.floor(width * dpr);
+  canvas.height = Math.floor(height * dpr);
+  canvas.style.width = width + 'px';
+  canvas.style.height = height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.font = fontSize + 'px monospace';
+  ctx.textAlign = 'center';
+  const rows = getRows(fontSize);
+  matrix.columns = times(Math.floor(width / fontSize) || 1, () => createColumn(rows));
+  matrix.grid = { fontSize, fallStyle };
+  fade(1);
+}
+
+function ensureCanvas() {
+  if (matrix.canvas) return;
+  matrix.canvas = createElement('canvas', { id: 'kg-matrix-canvas' });
+  matrix.ctx = matrix.canvas.getContext('2d');
+  document.body.appendChild(matrix.canvas);
+  window.addEventListener('resize', resizeMatrix);
+}
+
+// Takes the settings that cannot be read live while drawing
+function syncConfig() {
+  const { fontSize, fallStyle, opacity, glyphSet, customGlyphs, digits, minWordLength } = config();
+  matrix.canvas.style.opacity = opacity;
+  matrix.glyphs = resolveGlyphs(glyphSet, customGlyphs, digits);
+  if (matrix.minLength !== minWordLength) filterWords();
+  if (matrix.grid?.fontSize !== fontSize || matrix.grid?.fallStyle !== fallStyle) resizeMatrix();
+}
+
+// ─── Drawing ─────────────────────────────────────────────────────────────────
+
+const paint = ({ ch, x, y }, color) => {
+  matrix.ctx.fillStyle = color;
+  matrix.ctx.fillText(ch, x, y);
+};
+
+function clearCell({ x, y }, size) {
+  matrix.ctx.fillStyle = '#000';
+  matrix.ctx.fillRect(x - size / 2, y - size, size, size * CELL_CLEAR_HEIGHT);
+}
+
+// A column prints a whole word letter by letter along its way, otherwise random glyphs.
+// Words come only from the game text (API).
+function drawGlyph(column, index, row, settings) {
+  const { glyphs, words, columns } = matrix;
+  const { fontSize: size, fallStyle, wordChance, glyphColor, wordColor, headColor, brightHead } = settings;
+
+  if (!column.word.length && words.length && Math.random() < wordChance) {
+    column.word = toLetters(randomItem(words), column.dir);
+    column.pos = 0;
+  }
+  const letter = column.word[column.pos];
+  const color = letter ? wordColor : glyphColor;
+  const slot = (index + Math.floor(row * FALL_STYLES[fallStyle].drift)) % columns.length;
+  const cell = {
+    ch: letter ?? randomItem(glyphs),
+    x: (slot + columns.length) % columns.length * size + size / 2,
+    y: row * size,
+    color
   };
+  if (letter && ++column.pos >= column.word.length) column.word = [];
 
-  // The effect brings its own dark base, so it is independent of the backdrop dimming level
-  const shouldShowMatrix = () => isFloatingMode() && getSetting('matrixEffect');
+  if (!brightHead) {
+    column.prev = null;
+    paint(cell, color);
+    return;
+  }
+  // The previous cell gives up the head color
+  if (column.prev) {
+    clearCell(column.prev, size);
+    paint(column.prev, column.prev.color);
+  }
+  paint(cell, headColor);
+  column.prev = cell;
+}
 
-  const createMatrixColumn = (maxY = 50) => ({
-    y: Math.floor(Math.random() * maxY) + 1,
-    word: '',
-    pos: 0
+function stepMatrix() {
+  const settings = config();
+  const rows = getRows(settings.fontSize);
+  fade(settings.trailFade);
+  matrix.columns.forEach((column, index) => {
+    column.y += column.dir * column.speed;
+    const row = Math.floor(column.y);
+    if (row !== column.row) {
+      column.row = row;
+      drawGlyph(column, index, row, settings);
+    }
+    const isOutside = column.dir > 0 ? row > rows : row < 1;
+    if (isOutside && Math.random() < RESPAWN_CHANCE) {
+      Object.assign(column, { y: column.dir > 0 ? 1 : rows, word: [], prev: null });
+    }
   });
+}
 
-  // Whole text is requested once: the page itself reveals the words only as they get typed
-  function extractWords(text) {
-    const words = text.split(/\s+/).map(word => word.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''));
-    return [...new Set(words.filter(word => word.length >= MATRIX.minWordLength))];
-  }
-
-  async function loadMatrixWords() {
-    const gameId = getGameId();
-    if (!gameId || matrix.gameId === gameId) return;
-    matrix.gameId = gameId;
-    try {
-      matrix.words = extractWords(await fetchGameText(gameId));
-    } catch {
-      matrix.gameId = null;
-    }
-  }
-
-  function fadeMatrix(alpha) {
-    const { ctx } = matrix;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
-    ctx.fillRect(0, 0, width, height);
-  }
-
-  // Resizing clears the canvas, so the dark base is painted again.
-  // Columns start at random vertical positions for a seamless (no initial wall) look.
-  // High-DPI handling keeps glyphs sharp under browser zoom / retina.
-  function resizeMatrix() {
-    const { canvas } = matrix;
-    if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    canvas.width = Math.floor(width * dpr);
-    canvas.height = Math.floor(height * dpr);
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
-    matrix.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const maxY = Math.floor(height / MATRIX.fontSize) || 50;
-    matrix.columns = Array.from(
-      { length: Math.floor(width / MATRIX.fontSize) || 1 },
-      () => createMatrixColumn(maxY)
-    );
-    fadeMatrix(1);
-  }
-
-  function ensureMatrixCanvas() {
-    if (matrix.canvas) return;
-    matrix.canvas = createElement('canvas', { id: 'kg-matrix-canvas' });
-    Object.assign(matrix.canvas.style, {
-      position: 'fixed',
-      top: '0',
-      left: '0',
-      width: '100vw',
-      height: '100vh',
-      zIndex: '2000',
-      pointerEvents: 'none',
-      opacity: MATRIX.opacity
-    });
-    matrix.ctx = matrix.canvas.getContext('2d');
-    document.body.appendChild(matrix.canvas);
-    addEvent(window, 'resize', resizeMatrix);
-  }
-
-  // A column prints a whole word letter by letter top to bottom, otherwise random glyphs.
-  // Words come only from the game text (API); glyphs stay pure katakana (no digits).
-  function stepMatrix() {
-    const { ctx, columns, words } = matrix;
-    fadeMatrix(MATRIX.trailFade);
-    ctx.font = MATRIX.fontSize + 'px monospace';
-    const height = window.innerHeight;
-    for (let index = 0; index < columns.length; index++) {
-      // A missing column is created on the spot, so a stale or sparse array can never break the animation
-      const column = columns[index] ??= createMatrixColumn(Math.floor(height / MATRIX.fontSize) || 50);
-      if (!column.word && words.length && Math.random() < MATRIX.wordChance) {
-        Object.assign(column, { word: randomItem(words), pos: 0 });
-      }
-      const isWord = !!column.word;
-      ctx.fillStyle = isWord ? MATRIX.wordColor : MATRIX.glyphColor;
-      ctx.fillText(
-        isWord ? column.word[column.pos] : randomItem(MATRIX.glyphs),
-        index * MATRIX.fontSize,
-        column.y * MATRIX.fontSize
-      );
-
-      const wraps = column.y * MATRIX.fontSize > height && Math.random() > 0.975;
-      column.y = wraps ? 1 : column.y + 1;
-      if (wraps || (isWord && ++column.pos >= column.word.length)) column.word = '';
-    }
-  }
-
-  function matrixFrame(now) {
-    if (!shouldShowMatrix()) {
-      stopMatrixAnimation();
-      return;
-    }
-    if (now - matrix.lastStep >= MATRIX.stepInterval) {
-      matrix.lastStep = now;
-      stepMatrix();
-    }
-    matrix.raf = requestAnimationFrame(matrixFrame);
-  }
-
-  function startMatrixAnimation() {
-    if (matrix.raf) return;
-    ensureMatrixCanvas();
-    resizeMatrix();
-    loadMatrixWords();
-    matrix.canvas.style.display = 'block';
-    matrix.lastStep = 0;
-    matrix.raf = requestAnimationFrame(matrixFrame);
-  }
-
-  function stopMatrixAnimation() {
-    cancelAnimationFrame(matrix.raf);
-    matrix.raf = null;
-    if (matrix.canvas) matrix.canvas.style.display = 'none';
-  }
-
-  function updateMatrixEffect() {
-    if (shouldShowMatrix()) startMatrixAnimation();
-    else stopMatrixAnimation();
-  }
-
-  // The resize listener is already removed by removeEvents on exit; the words cache is kept
-  function destroyMatrix() {
+function matrixFrame(now) {
+  if (!shouldShowMatrix()) {
     stopMatrixAnimation();
-    matrix.canvas?.remove();
-    Object.assign(matrix, { canvas: null, ctx: null, columns: [] });
+    return;
   }
+  if (now - matrix.lastStep >= config().stepInterval) {
+    matrix.lastStep = now;
+    stepMatrix();
+  }
+  matrix.raf = requestAnimationFrame(matrixFrame);
+}
 
-  return { updateMatrixEffect, destroyMatrix };
+// ─── Lifecycle ───────────────────────────────────────────────────────────────
+
+function startMatrixAnimation() {
+  ensureCanvas();
+  matrix.grid = null;
+  loadWords();
+  matrix.canvas.style.display = 'block';
+  matrix.lastStep = 0;
+  matrix.raf = requestAnimationFrame(matrixFrame);
+}
+
+function stopMatrixAnimation() {
+  cancelAnimationFrame(matrix.raf);
+  matrix.raf = null;
+  if (matrix.canvas) matrix.canvas.style.display = 'none';
+}
+
+// Start, stop or re-tune: called on entering the floating mode and whenever a matrix setting changes
+export function updateMatrixEffect() {
+  if (!shouldShowMatrix()) {
+    stopMatrixAnimation();
+    return;
+  }
+  if (!matrix.raf) startMatrixAnimation();
+  syncConfig();
+}
+
+// The words cache is kept
+export function destroyMatrix() {
+  stopMatrixAnimation();
+  window.removeEventListener('resize', resizeMatrix);
+  matrix.canvas?.remove();
+  Object.assign(matrix, { canvas: null, ctx: null, columns: [], grid: null });
 }

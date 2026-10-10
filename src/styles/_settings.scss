@@ -1,0 +1,117 @@
+@use 'tokens' as *;
+
+@mixin themed-control {
+  border: 1px solid var(--kg-border-color);
+  border-radius: 0.3em;
+  background: var(--kg-input-normal-background);
+  color: var(--kg-input-normal-text);
+}
+
+.kg-panel.kg-panel-settings {
+  // Width follows the content like the help panel does, but never gets cramped
+  @include important((
+    white-space: normal,
+    min-width: min(500px, calc(100vw - 2 * var(--kg-panel-margin, 8px)))
+  ));
+
+  .kg-settings {
+    &-heading {
+      margin: 14px 0 6px;
+      border-bottom: 1px solid var(--kg-border-color);
+      font-weight: bold;
+      color: var(--kg-help-heading);
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+
+    &-reset {
+      @include themed-control;
+      width: 100%;
+      margin-top: 14px;
+      padding: 6px 12px;
+      border: none;
+      font: inherit;
+      cursor: pointer;
+
+      &:hover {
+        background: var(--kg-input-normal-text);
+        color: var(--kg-input-normal-background);
+      }
+    }
+  }
+
+  .kg-setting {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 26px;
+
+    &[hidden] {
+      display: none;
+    }
+
+    &-label {
+      flex: 1;
+    }
+
+    .kg-range {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      input[type='range'] {
+        width: 130px;
+      }
+
+      output,
+      &-entry {
+        min-width: 48px;
+        text-align: right;
+        font-weight: bold;
+        font-variant-numeric: tabular-nums;
+        color: var(--kg-help-value);
+      }
+
+      &-entry {
+        @include themed-control;
+        box-sizing: border-box;
+        width: 72px;
+        padding: 1px 4px;
+        font: inherit;
+      }
+    }
+
+    input {
+      &[type='range'],
+      &[type='checkbox'] {
+        accent-color: var(--kg-text-focus);
+        cursor: pointer;
+      }
+
+      &[type='text'] {
+        user-select: text;
+      }
+
+      &[type='color'] {
+        @include themed-control;
+        width: 44px;
+        height: 24px;
+        padding: 0;
+        background: none;
+        cursor: pointer;
+      }
+    }
+
+    select,
+    input[type='text'] {
+      @include themed-control;
+      box-sizing: border-box;
+      width: 180px;
+      padding: 3px 6px;
+      font: inherit;
+    }
+  }
+}

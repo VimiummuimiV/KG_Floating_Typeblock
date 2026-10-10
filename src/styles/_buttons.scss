@@ -1,0 +1,49 @@
+@use 'tokens' as *;
+
+#kg-buttons-wrap {
+  @include important((
+    position: absolute,
+    left: 0,
+    right: 0,
+    bottom: -40px,
+    z-index: 1
+  ));
+
+  #kg-buttons {
+    @include flex-row;
+    width: 100%;
+
+    #kg-buttons-left {
+      @include flex-row(8px);
+
+      #kg-numeric-indicator {
+        font-family: 'Quicksand', sans-serif !important;
+        font-weight: 600;
+        font-size: 1.1em;
+        cursor: default !important;
+      }
+    }
+
+    #kg-buttons-right {
+      @include flex-row;
+      margin-left: auto;
+
+      #kg-btn-collapse {
+        transition: transform 0.2s ease, border-radius 0.2s ease, opacity 0.25s ease;
+
+        &.kg-collapsed {
+          transform: rotate(180deg);
+        }
+
+        &.kg-hidden {
+          opacity: 0;
+        }
+
+        // Round while it turns
+        &.kg-spinning {
+          border-radius: 50% !important;
+        }
+      }
+    }
+  }
+}

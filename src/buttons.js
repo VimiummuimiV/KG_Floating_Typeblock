@@ -1,344 +1,185 @@
-import { svgIcon, ICONS } from './icons.js';
+import { toggleModeSettings, toggleSetting, toggleTheme } from './actions.js';
 import { hideUp, showFromUp } from './animations.js';
+import { openReplay } from './game.js';
+import { helpPanel } from './help.js';
+import { ICONS } from './icons.js';
+import { SCHEMA, getSetting, hasModeSettings, setSetting } from './settings.js';
+import { settingsPanel } from './settings-panel.js';
+import { THEME_NAMES } from './theme.js';
+import { byId, createElement, isFloating } from './utils.js';
 
-export function createButtonsController({
-  themes,
-  getCurrentTheme,
-  isFloatingMode,
-  getSetting,
-  setSetting,
-  getSettingsForMode,
-  getCurrentModeKey,
-  isPartialMode,
-  toggleTextVisibilityMode,
-  toggleInputAlignment,
-  toggleStats,
-  toggleProgressBar,
-  toggleMatrixEffect,
-  toggleTheme,
-  toggleAutoEnterFloating,
-  toggleCustomSettings,
-  toggleHelpPanel,
-  openReplay,
-  THEME_NAMES
-}) {
-  let numericIndicatorTimeout = null;
-  let animating = false;
+const COLLAPSE_HIDE_DELAY = 2000;
+const INDICATOR_DELAY = 3000;
+const SLIDE = { distance: 36 };
+const FONT_URL = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap';
 
-  // title/icon may be string or () => string
-  // noOpacity: keep full opacity regardless of isActive
-  const BUTTONS = [
-    {
-      id: 'kg-btn-saved',
-      title: () => getSettingsForMode(getCurrentModeKey())
-        ? 'Забыть настройки режима'
-        : 'Запомнить настройки режима',
-      isActive: () => !!getSettingsForMode(getCurrentModeKey()),
-      toggle: () => toggleCustomSettings(),
-      icon: ICONS.saved
-    },
-    {
-      id: 'kg-btn-partial',
-      title: 'Построчное отображение',
-      isActive: isPartialMode,
-      toggle: () => toggleTextVisibilityMode(),
-      icon: ICONS.partial
-    },
-    {
-      id: 'kg-btn-alignment',
-      title: 'Выравнивание ввода',
-      isActive: () => isFloatingMode() && getSetting('alignInputWithFocus'),
-      toggle: () => toggleInputAlignment(),
-      icon: ICONS.alignment
-    },
-    {
-      id: 'kg-btn-stats',
-      title: 'Скорость и ошибки',
-      isActive: () => isFloatingMode() && getSetting('showStats'),
-      toggle: () => toggleStats(),
-      icon: ICONS.stats
-    },
-    {
-      id: 'kg-btn-progress',
-      title: 'Прогресс-бар',
-      isActive: () => getSetting('showProgress'),
-      toggle: () => toggleProgressBar(),
-      icon: ICONS.progress
-    },
-    {
-      id: 'kg-btn-matrix',
-      title: 'Эффект матрицы',
-      isActive: () => isFloatingMode() && getSetting('matrixEffect'),
-      toggle: () => toggleMatrixEffect(),
-      icon: ICONS.matrix
-    },
-    {
-      id: 'kg-btn-theme',
-      title: () => THEME_NAMES[getCurrentTheme()] || 'Тема',
-      isActive: () => true,
-      noOpacity: true,
-      toggle: () => toggleTheme(),
-      icon: () => getCurrentTheme() === 'dark' ? ICONS.moon : ICONS.sun
-    },
-    {
-      id: 'kg-btn-autoenter',
-      title: 'Автовход в плавающий режим',
-      isActive: () => !!getSetting('autoEnterFloating'),
-      toggle: () => toggleAutoEnterFloating(),
-      icon: ICONS.autoEnter
-    },
-    {
-      id: 'kg-btn-help',
-      title: 'Справка',
-      isActive: () => true,
-      noOpacity: true,
-      toggle: () => toggleHelpPanel(),
-      icon: ICONS.help
-    },
-    {
-      id: 'kg-btn-next',
-      title: 'Следующая игра',
-      isActive: () => true,
-      noOpacity: true,
-      toggle: () => openReplay(),
-      icon: ICONS.play
-    }
-  ];
+const state = { hideTimer: null, indicatorTimer: null, busy: false };
 
-  function resolve(value) {
-    return typeof value === 'function' ? value() : value;
-  }
+// title/icon may be a string or () => string; isActive defaults to true
+const settingButton = (id, key, icon) => ({
+  id,
+  icon,
+  title: SCHEMA[key].label,
+  isActive: () => getSetting(key),
+  onClick: () => toggleSetting(key)
+});
 
-  function ensureShell() {
-    const mainBlock = document.getElementById('main-block');
-    if (!mainBlock) return null;
+const BUTTONS = [
+  {
+    id: 'kg-btn-saved',
+    icon: ICONS.saved,
+    title: () => (hasModeSettings() ? 'Забыть настройки режима' : 'Запомнить настройки режима'),
+    isActive: hasModeSettings,
+    onClick: toggleModeSettings
+  },
+  settingButton('kg-btn-partial', 'isPartialMode', ICONS.partial),
+  settingButton('kg-btn-alignment', 'alignInputWithFocus', ICONS.alignment),
+  settingButton('kg-btn-stats', 'showStats', ICONS.stats),
+  settingButton('kg-btn-progress', 'showProgress', ICONS.progress),
+  settingButton('kg-btn-matrix', 'matrixEffect', ICONS.matrix),
+  {
+    id: 'kg-btn-theme',
+    icon: () => (getSetting('theme') === 'dark' ? ICONS.moon : ICONS.sun),
+    title: () => THEME_NAMES[getSetting('theme')],
+    onClick: toggleTheme
+  },
+  settingButton('kg-btn-autoenter', 'autoEnterFloating', ICONS.autoEnter),
+  { id: 'kg-btn-settings', icon: ICONS.settings, title: 'Настройки', onClick: () => settingsPanel.toggle() },
+  { id: 'kg-btn-help', icon: ICONS.help, title: 'Справка', onClick: () => helpPanel.toggle() },
+  { id: 'kg-btn-next', icon: ICONS.play, title: 'Следующая игра', onClick: openReplay }
+];
 
-    let wrap = document.getElementById('kg-buttons-wrap');
-    if (!wrap) {
-      wrap = document.createElement('div');
-      wrap.id = 'kg-buttons-wrap';
-      Object.assign(wrap.style, {
-        position: 'absolute',
-        left: '0',
-        right: '0',
-        bottom: '-40px',
-        zIndex: '1'
-      });
-      mainBlock.appendChild(wrap);
-    }
+const resolve = (value) => (typeof value === 'function' ? value() : value);
 
-    let shell = document.getElementById('kg-buttons');
-    if (!shell) {
-      shell = document.createElement('div');
-      shell.id = 'kg-buttons';
-      Object.assign(shell.style, {
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        width: '100%'
-      });
-      wrap.appendChild(shell);
-    }
+// ─── Collapse button visibility ──────────────────────────────────────────────
 
-    let left = document.getElementById('kg-buttons-left');
-    if (!left) {
-      left = document.createElement('div');
-      left.id = 'kg-buttons-left';
-      Object.assign(left.style, {
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: '8px'
-      });
-      shell.appendChild(left);
-    }
+const setCollapseVisible = (visible) => byId('kg-btn-collapse')?.classList.toggle('kg-hidden', !visible);
+const cancelCollapseHide = () => clearTimeout(state.hideTimer);
 
-    let right = document.getElementById('kg-buttons-right');
-    if (!right) {
-      right = document.createElement('div');
-      right.id = 'kg-buttons-right';
-      Object.assign(right.style, {
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginLeft: 'auto'
-      });
-      shell.appendChild(right);
-    }
+function scheduleCollapseHide() {
+  cancelCollapseHide();
+  if (getSetting('showButtons') || state.busy) return;
+  state.hideTimer = setTimeout(() => {
+    if (!getSetting('showButtons') && !state.busy) setCollapseVisible(false);
+  }, COLLAPSE_HIDE_DELAY);
+}
 
-    return { wrap, shell, left, right };
-  }
+// ─── Bar ─────────────────────────────────────────────────────────────────────
 
-  function applyButtonBaseStyles(span) {
-    const theme = themes[getCurrentTheme()];
-    if (!theme) return;
-    const { text, background } = theme.input.normal;
-    Object.assign(span.style, {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '28px',
-      height: '28px',
-      backgroundColor: background,
-      color: text,
-      stroke: text,
-      cursor: 'pointer'
+function ensureBar() {
+  const wrap = byId('kg-buttons-wrap');
+  if (wrap) return { left: byId('kg-buttons-left'), right: byId('kg-buttons-right') };
+
+  const mainBlock = byId('main-block');
+  if (!mainBlock) return null;
+  const left = createElement('div', { id: 'kg-buttons-left' });
+  const right = createElement('div', { id: 'kg-buttons-right' });
+  const created = createElement('div', { id: 'kg-buttons-wrap' }, createElement('div', { id: 'kg-buttons' }, left, right));
+  created.addEventListener('mouseenter', () => {
+    cancelCollapseHide();
+    if (!getSetting('showButtons')) setCollapseVisible(true);
+  });
+  created.addEventListener('mouseleave', () => {
+    if (!getSetting('showButtons')) scheduleCollapseHide();
+  });
+  mainBlock.appendChild(created);
+  return { left, right };
+}
+
+function syncButton(def, parent) {
+  let button = byId(def.id);
+  if (!button) {
+    button = createElement('span', { id: def.id, className: 'kg-btn' });
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      def.onClick();
     });
-    span.style.setProperty('border-radius', '0.2em', 'important');
-    span.style.setProperty('box-shadow', theme.shadowSmall, 'important');
   }
-
-  function syncButton(def, parent) {
-    let span = document.getElementById(def.id);
-    if (!span) {
-      span = document.createElement('span');
-      span.id = def.id;
-      span.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        def.toggle();
-      });
-      parent.appendChild(span);
-    } else if (span.parentElement !== parent) {
-      parent.appendChild(span);
-    }
-    span.title = resolve(def.title);
-    span.innerHTML = resolve(def.icon);
-    applyButtonBaseStyles(span);
-    span.style.opacity = def.noOpacity || def.isActive() ? '1' : '0.4';
+  if (button.parentElement !== parent) parent.appendChild(button);
+  const icon = resolve(def.icon);
+  if (button.kgIcon !== icon) {
+    button.innerHTML = icon;
+    button.kgIcon = icon;
   }
+  button.title = resolve(def.title);
+  button.classList.toggle('kg-off', !(def.isActive?.() ?? true));
+}
 
-  function syncCollapseButton(right, animate = false) {
-    let span = document.getElementById('kg-btn-collapse');
-    if (!span) {
-      span = document.createElement('span');
-      span.id = 'kg-btn-collapse';
-      span.innerHTML = ICONS.chevronUp;
-      span.style.transition = 'transform 0.2s ease, border-radius 0.2s ease';
-      span.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleCollapse();
-      });
-      right.appendChild(span);
-    }
-    const open = getSetting('showButtons') !== false;
-    span.title = open ? 'Скрыть кнопки' : 'Показать кнопки';
-    applyButtonBaseStyles(span);
-    span.style.opacity = '1';
-    const target = open ? 'rotate(0deg)' : 'rotate(180deg)';
-    if (animate) {
-      span.style.setProperty('border-radius', '50%', 'important');
-      span.style.transform = target;
-      const done = () => {
-        span.style.setProperty('border-radius', '0.2em', 'important');
-        span.removeEventListener('transitionend', done);
-      };
-      span.addEventListener('transitionend', done);
-    } else {
-      span.style.transform = target;
-      span.style.setProperty('border-radius', '0.2em', 'important');
-    }
-  }
-
-  async function toggleCollapse() {
-    if (animating || !isFloatingMode()) return;
-    const open = getSetting('showButtons') !== false;
-    const parts = ensureShell();
-    if (!parts) return;
-
-    animating = true;
-    if (open) {
-      // Hide left group upward, then clear it
-      setSetting('showButtons', false);
-      await hideUp(parts.left, { distance: 36 });
-      parts.left.replaceChildren();
-      // Recreate empty left container (hideUp may have removed it)
-      if (!document.getElementById('kg-buttons-left')) {
-        const left = document.createElement('div');
-        left.id = 'kg-buttons-left';
-        Object.assign(left.style, {
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: '8px'
-        });
-        parts.shell.insertBefore(left, parts.right);
-      }
-    } else {
-      setSetting('showButtons', true);
-      const parts2 = ensureShell();
-      BUTTONS.forEach((def) => syncButton(def, parts2.left));
-      await showFromUp(parts2.left, { distance: 36 });
-    }
-    syncCollapseButton(ensureShell().right, true);
-    animating = false;
-  }
-
-  function updateButtons() {
-    if (!isFloatingMode()) {
-      document.getElementById('kg-buttons-wrap')?.remove();
-      return;
-    }
-    const { left, right } = ensureShell();
-    const open = getSetting('showButtons') !== false;
-
-    if (open) {
-      BUTTONS.forEach((def) => syncButton(def, left));
-      // Remove buttons that are no longer in the list
-      [...left.children].forEach((child) => {
-        if (!BUTTONS.some((d) => d.id === child.id) && child.id !== 'kg-numeric-indicator') {
-          child.remove();
-        }
-      });
-    } else {
-      left.replaceChildren();
-    }
-    syncCollapseButton(right);
-  }
-
-  function ensureFontImport() {
-    if (document.getElementById('kg-font-import')) return;
-    const link = document.createElement('link');
-    link.id = 'kg-font-import';
-    link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap';
-    document.head.appendChild(link);
-  }
-
-  function showNumericIndicator(value, title = '', updateOnly = false) {
-    if (getSetting('showButtons') === false) {
-      document.getElementById('kg-numeric-indicator')?.remove();
-      return;
-    }
-    let span = document.getElementById('kg-numeric-indicator');
-    if (!span && updateOnly) return;
-    const { left } = ensureShell() || {};
-    if (!left) return;
-    ensureFontImport();
-    if (!span) {
-      span = document.createElement('span');
-      span.id = 'kg-numeric-indicator';
-      left.appendChild(span);
-    }
-    span.title = title;
-    applyButtonBaseStyles(span);
-    Object.assign(span.style, {
-      fontFamily: '"Quicksand", sans-serif',
-      fontWeight: '600',
-      fontSize: '1.1em',
-      cursor: 'default'
+function syncCollapse(right, animate = false) {
+  let button = byId('kg-btn-collapse');
+  if (!button) {
+    button = createElement('span', { id: 'kg-btn-collapse', className: 'kg-btn', innerHTML: ICONS.chevronUp });
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleCollapse();
     });
-    span.innerText = String(value);
-    if (updateOnly) return;
-    clearTimeout(numericIndicatorTimeout);
-    numericIndicatorTimeout = setTimeout(() => span.remove(), 3000);
+    right.appendChild(button);
   }
+  const open = getSetting('showButtons');
+  button.title = open ? 'Скрыть кнопки' : 'Показать кнопки';
+  button.classList.toggle('kg-collapsed', !open);
+  if (animate) {
+    // Round while it turns
+    button.classList.add('kg-spinning');
+    button.addEventListener('transitionend', () => button.classList.remove('kg-spinning'), { once: true });
+  }
+  // Open: always visible. Collapsed: hidden until hover; right after the toggle it shows briefly
+  cancelCollapseHide();
+  setCollapseVisible(open || animate);
+  if (!open && animate) scheduleCollapseHide();
+}
 
-  return {
-    updateButtons,
-    showNumericIndicator,
-    applyButtonBaseStyles,
-    svgIcon
-  };
+async function toggleCollapse() {
+  const parts = ensureBar();
+  if (state.busy || !isFloating() || !parts) return;
+  state.busy = true;
+  cancelCollapseHide();
+  if (getSetting('showButtons')) {
+    setSetting('showButtons', false);
+    await hideUp(parts.left, { ...SLIDE, remove: false });
+    parts.left.replaceChildren();
+  } else {
+    setSetting('showButtons', true);
+    BUTTONS.forEach((def) => syncButton(def, parts.left));
+    await showFromUp(parts.left, SLIDE);
+  }
+  syncCollapse(parts.right, true);
+  state.busy = false;
+}
+
+export function updateButtons() {
+  if (!isFloating()) {
+    cancelCollapseHide();
+    byId('kg-buttons-wrap')?.remove();
+    return;
+  }
+  const parts = ensureBar();
+  if (!parts) return;
+  if (getSetting('showButtons')) {
+    if (!state.busy) parts.left.getAnimations().forEach((animation) => animation.cancel());
+    BUTTONS.forEach((def) => syncButton(def, parts.left));
+  } else {
+    parts.left.replaceChildren();
+  }
+  syncCollapse(parts.right);
+}
+
+// ─── Numeric indicator ───────────────────────────────────────────────────────
+
+const ensureFont = () => byId('kg-font-import') ?? document.head.appendChild(
+  createElement('link', { id: 'kg-font-import', rel: 'stylesheet', href: FONT_URL }));
+
+// Value of something changed by dragging or wheel, shown for a moment next to the buttons
+export function showNumericIndicator(value, title = '') {
+  const parts = isFloating() && getSetting('showButtons') ? ensureBar() : null;
+  if (!parts) return;
+  ensureFont();
+  const indicator = byId('kg-numeric-indicator')
+    ?? parts.left.appendChild(createElement('span', { id: 'kg-numeric-indicator', className: 'kg-btn' }));
+  indicator.title = title;
+  indicator.textContent = String(value);
+  clearTimeout(state.indicatorTimer);
+  state.indicatorTimer = setTimeout(() => indicator.remove(), INDICATOR_DELAY);
 }

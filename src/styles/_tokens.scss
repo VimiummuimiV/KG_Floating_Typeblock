@@ -1,0 +1,24 @@
+$font-ui: Tahoma, Arial, sans-serif;
+$radius: 0.4em;
+
+$z-dimming: 2000;
+$z-block: 2010;
+$z-panel: 2150;
+$z-toast: 2200;
+
+// Rules that touch elements of the site must win over its stylesheets
+@mixin important($properties) {
+  @each $name, $value in $properties {
+    #{$name}: #{$value} !important;
+  }
+}
+
+@mixin flex-row($gap: null) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  @if $gap {
+    gap: $gap;
+  }
+}

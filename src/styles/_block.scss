@@ -1,0 +1,165 @@
+@use 'tokens' as *;
+
+// Colors of the input for one of its states, picked by the class the site puts on it
+@mixin input-state($state) {
+  --kg-input-color: var(--kg-input-#{$state}-text);
+  --kg-input-background: var(--kg-input-#{$state}-background);
+  --kg-input-caret: var(--kg-input-#{$state}-caret);
+  --kg-input-selection-background: var(--kg-input-#{$state}-selection-background);
+  --kg-input-selection-text: var(--kg-input-#{$state}-selection-text);
+}
+
+// Parts of the game text and the theme color each one takes
+$text-parts: (beforefocus: before, typefocus: focus, afterfocus: after);
+
+#kg-matrix-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: $z-dimming;
+  pointer-events: none;
+}
+
+html.kg-floating {
+  --kg-progress-track: var(--kg-border-color);
+  --kg-progress-fill: var(--kg-text-focus);
+
+  #kg-dimming-background {
+    @include important((
+      position: fixed,
+      top: 0,
+      left: 0,
+      width: 100vw,
+      height: 100vh,
+      background-color: rgba(0, 0, 0, var(--kg-dimming)),
+      z-index: $z-dimming,
+      cursor: ns-resize,
+      user-select: none
+    ));
+  }
+
+  #main-block {
+    @include important((
+      position: fixed,
+      width: var(--kg-main-width),
+      left: 50%,
+      top: var(--kg-main-top),
+      transform: translateX(-50%),
+      z-index: $z-block,
+      pointer-events: auto,
+      min-width: 566px,
+      filter: var(--kg-elements-filter, none)
+    ));
+
+    .handle {
+      display: none !important;
+    }
+  }
+
+  #typeblock {
+    @include important((
+      position: relative,
+      z-index: 2,
+      width: 100%,
+      border-radius: 18px,
+      background-color: var(--kg-background),
+      box-shadow: var(--kg-shadow)
+    ));
+
+    .rc {
+      padding: 10px 10px 10px 20px !important;
+    }
+
+    .r {
+      &.tl,
+      .tr,
+      .bl,
+      .br {
+        background: transparent !important;
+      }
+    }
+
+    #inputtext {
+      @include important((
+        width: 100%,
+        position: relative,
+        box-shadow: none,
+        border: none,
+        margin: 0.5em 0 0,
+        padding: var(--kg-input-padding),
+        border-radius: 0.4em,
+        outline: none,
+        font-size: var(--kg-font-size)
+      ));
+      @include input-state(normal);
+
+      &.error {
+        @include input-state(error);
+      }
+
+      // After .error: disabled wins
+      &.disabled {
+        @include input-state(disabled);
+      }
+
+      &::selection {
+        background: var(--kg-input-selection-background) !important;
+        color: var(--kg-input-selection-text) !important;
+      }
+    }
+  }
+
+  #typetext {
+    @include important((
+      position: relative,
+      overflow: hidden,
+      font-size: var(--kg-font-size),
+      line-height: calc(var(--kg-font-size) * 1.2)
+    ));
+
+    img {
+      width: 100% !important;
+      height: auto !important;
+      border-radius: 14px !important;
+      filter: var(--kg-image-filter);
+    }
+
+    @each $id, $part in $text-parts {
+      ##{$id} {
+        color: var(--kg-text-#{$part}) !important;
+      }
+    }
+
+    #typefocus.highlight_error {
+      color: var(--kg-text-error) !important;
+    }
+  }
+
+  #inputtextblock {
+    @include important((
+      display: flex,
+      justify-content: flex-start,
+      align-items: center,
+      transition: margin-left 0.1s ease
+    ));
+  }
+
+  #report,
+  #entertip,
+  #param_keyboard {
+    display: none !important;
+  }
+
+  #keyboard {
+    filter: var(--kg-keyboard-filter);
+  }
+
+  #keyboard_cont {
+    margin-top: 0 !important;
+  }
+
+  // Colors change smoothly, but not on the very first paint
+  &.kg-ready #typeblock #inputtext {
+    transition: background-color 0.2s ease, color 0.2s ease !important;
+  }
+}

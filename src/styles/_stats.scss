@@ -1,0 +1,111 @@
+@use 'tokens' as *;
+
+@mixin baseline-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+@mixin stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+@mixin stat-caption {
+  font-size: 12px;
+  color: var(--kg-text-after);
+}
+
+#kg-stats-wrap {
+  @include important((
+    position: absolute,
+    bottom: 100%,
+    left: 0,
+    right: 0,
+    display: flex,
+    justify-content: center,
+    margin-bottom: 8px,
+    z-index: 1,
+    pointer-events: none
+  ));
+
+  #kg-stats {
+    @include important((
+      display: flex,
+      align-items: center,
+      gap: 14px,
+      padding: 6px 18px,
+      border: 2px solid var(--kg-border-color),
+      border-radius: 999px,
+      background-color: var(--kg-background),
+      box-shadow: var(--kg-shadow),
+      font-family: $font-ui,
+      white-space: nowrap,
+      user-select: none,
+      pointer-events: auto,
+      color: hsl(var(--kg-speed-hue, 130) 70% var(--kg-speed-lightness, 50%)),
+      transition: color 0.25s
+    ));
+
+    .kg-speed {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      &-readout {
+        @include baseline-row;
+      }
+
+      &-value {
+        @include stat-value;
+        min-width: 3ch;
+        text-align: right;
+      }
+
+      &-unit {
+        @include stat-caption;
+      }
+
+      &-bar {
+        display: flex;
+        gap: 2px;
+        width: 128px;
+      }
+
+      &-cell {
+        flex: 1;
+        height: 4px;
+        border-radius: 1px;
+        background-color: var(--kg-border-color);
+
+        &-lit {
+          background-color: currentColor;
+        }
+      }
+    }
+
+    .kg-errors {
+      @include baseline-row;
+      padding-left: 14px;
+      border-left: 2px solid var(--kg-border-color);
+      color: var(--kg-text-after);
+
+      &-value {
+        @include stat-value;
+        transition: color 0.2s;
+      }
+
+      &-label {
+        @include stat-caption;
+      }
+
+      &-active {
+        .kg-errors-value {
+          color: var(--kg-text-error);
+        }
+      }
+    }
+  }
+}
