@@ -3,7 +3,7 @@ import { ICONS } from './icons.js';
 import { byId, clamp, createElement, readStorage, setCssVars, writeStorage } from './utils.js';
 
 const MARGIN = 8;
-const INTERACTIVE = 'input, select, textarea, button, label';
+const INTERACTIVE = 'input, select, textarea, button, [tabindex]';
 const POSITION_EPSILON = 1;
 
 const panels = new Set();

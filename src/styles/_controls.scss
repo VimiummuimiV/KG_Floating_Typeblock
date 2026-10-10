@@ -4,43 +4,25 @@
 
 $thumb-size: 16px;
 
-@mixin control-base {
-  appearance: none;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-}
-
-.kg-checkbox,
-.kg-slider,
-.kg-select,
-.kg-swatch,
-.kg-menu-item {
-  &:focus-visible {
-    outline: 2px solid var(--kg-text-focus);
-    outline-offset: 2px;
-  }
-}
-
 .kg-checkbox {
   @include control-base;
   @include themed-control;
+  @include focus-ring;
   position: relative;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 
+  // The check is a rotated corner: the 45% offset puts its visual center in the middle of the box
   &::after {
     content: '';
     position: absolute;
-    left: 5px;
-    top: 1px;
-    width: 4px;
-    height: 9px;
+    left: 50%;
+    top: 45%;
+    width: 5px;
+    height: 10px;
     border: solid var(--kg-background);
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
+    border-width: 0 3px 3px 0;
+    transform: translate(-50%, -50%) rotate(45deg);
     opacity: 0;
   }
 
@@ -61,6 +43,7 @@ $thumb-size: 16px;
   height: 20px;
   margin: 0 ($thumb-size * 0.5);
   cursor: pointer;
+  @include focus-ring;
 
   &::before {
     content: '';
@@ -141,6 +124,7 @@ $thumb-size: 16px;
 
 .kg-menu-item {
   @include control-base;
+  @include focus-ring;
   display: block;
   width: 100%;
   padding: 4px 8px;

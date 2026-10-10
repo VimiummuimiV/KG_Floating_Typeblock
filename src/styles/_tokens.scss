@@ -24,9 +24,39 @@ $z-toast: 2200;
   }
 }
 
+// Strips the browser look of a form element (every browser has its own)
+@mixin control-base {
+  appearance: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+
+  &::-moz-focus-inner {
+    border: 0;
+  }
+}
+
+// Focus is shown only for the keyboard
+@mixin focus-ring {
+  outline: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--kg-text-focus);
+    outline-offset: 2px;
+  }
+}
+
 @mixin themed-control {
   border: 1px solid var(--kg-border-color);
   border-radius: 0.3em;
   background: var(--kg-input-normal-background);
   color: var(--kg-input-normal-text);
+  outline: none;
+  box-shadow: none;
+
+  &:focus-visible {
+    border-color: var(--kg-text-focus);
+  }
 }

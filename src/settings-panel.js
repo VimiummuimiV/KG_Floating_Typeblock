@@ -101,7 +101,7 @@ function build(content) {
     fields.forEach((path) => {
       const field = SCHEMA[path];
       const control = CONTROLS[field.type](path, field);
-      const row = createElement('label', { className: `kg-setting kg-setting-${field.type}` },
+      const row = createElement('div', { className: `kg-setting kg-setting-${field.type}` },
         createElement('span', { className: 'kg-setting-label', textContent: field.label }),
         control.element);
       // Alt + click anywhere on the row resets this one setting

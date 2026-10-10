@@ -9,19 +9,18 @@
 
   .kg-settings {
     &-heading {
+      @include control-base;
+      @include focus-ring;
       display: flex;
       align-items: center;
       justify-content: space-between;
       width: 100%;
       margin: 14px 0 6px;
-      padding: 0;
       border: none;
       border-bottom: 1px solid var(--kg-border-color);
       background: none;
-      font: inherit;
       font-weight: bold;
       color: var(--kg-help-heading);
-      cursor: pointer;
 
       &::after {
         content: '';
@@ -43,13 +42,13 @@
     }
 
     &-reset {
+      @include control-base;
       @include themed-control;
+      @include focus-ring;
       width: 100%;
       margin-top: 14px;
       padding: 6px 12px;
       border: none;
-      font: inherit;
-      cursor: pointer;
 
       &:hover {
         background: var(--kg-input-normal-text);
