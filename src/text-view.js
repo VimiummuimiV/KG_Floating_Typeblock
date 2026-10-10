@@ -101,12 +101,15 @@ function isTextClipped() {
   return !!typeText && typeText.scrollHeight > typeText.clientHeight + 1;
 }
 
+const setProgress = (bar) => { bar.firstElementChild.style.transform = `scaleX(${getTypingProgress()})`; };
+
 function ensureProgressBar() {
   let bar = byId(PROGRESS_BAR_ID);
   if (bar) return bar;
   const inputBlock = byId('inputtextblock');
   if (!inputBlock) return null;
   bar = createElement('div', { id: PROGRESS_BAR_ID }, createElement('div'));
+  setProgress(bar);
   inputBlock.before(bar);
   return bar;
 }
@@ -116,7 +119,7 @@ export function updateProgressBar() {
   const bar = ensureProgressBar();
   if (!bar) return;
   bar.hidden = !(getSetting('showProgress') && isTextClipped());
-  bar.firstElementChild.style.transform = `scaleX(${getTypingProgress()})`;
+  setProgress(bar);
 }
 
 // Text layout changed: re-apply visibility and everything that depends on it
