@@ -6,6 +6,7 @@ const range = (start, end) => times(end - start + 1, (offset) => String.fromCode
 export const DIGITS = '0123456789';
 
 // Glyph sets: label + characters. The 'custom' chars come from the settings; digits are an optional add-on.
+// hasDigits: the digits belong to the set itself, so the digits add-on does not apply.
 // 'tech' skips the colored emoji of its block.
 export const GLYPH_SETS = {
   katakana: { label: 'Катакана', chars: range(0x30a2, 0x30f3) },
@@ -14,8 +15,8 @@ export const GLYPH_SETS = {
   latin: { label: 'Латиница', chars: range(0x41, 0x5a) },
   cyrillic: { label: 'Кириллица', chars: range(0x410, 0x42f) },
   greek: { label: 'Греческий', chars: range(0x3b1, 0x3c9) },
-  binary: { label: 'Бинарный код', chars: '01' },
-  hex: { label: 'Шестнадцатеричный', chars: 'ABCDEF0123456789' },
+  binary: { label: 'Бинарный код', chars: '01', hasDigits: true },
+  hex: { label: 'Шестнадцатеричный', chars: 'ABCDEF0123456789', hasDigits: true },
   code: { label: 'Символы кода', chars: '<>{}[]()/\\|=+-*&^%$#@!?;:~' },
   math: { label: 'Математика', chars: range(0x2200, 0x22ff) },
   tech: { label: 'Технические символы', chars: range(0x2300, 0x2319) + range(0x231c, 0x23e8) },
@@ -47,10 +48,13 @@ export const GLYPH_OPTIONS = toOptions(Object.entries(GLYPH_SETS).map(([key, { l
   chars ? `${label}  ${[...chars].slice(0, SAMPLE_LENGTH).join('')}` : label
 ]));
 
+// Sets the digits add-on applies to
+export const DIGITS_ADDABLE = Object.keys(GLYPH_SETS).filter((key) => !GLYPH_SETS[key].hasDigits);
+
 export const FALL_OPTIONS = toOptions(Object.entries(FALL_STYLES).map(([key, { label }]) => [key, label]));
 
 export function resolveGlyphs(setName, customGlyphs, withDigits) {
-  const chars = (setName === 'custom' ? customGlyphs : GLYPH_SETS[setName].chars) + (withDigits ? DIGITS : '');
+  const chars = (setName === 'custom' ? customGlyphs : GLYPH_SETS[setName].chars) + (withDigits && DIGITS_ADDABLE.includes(setName) ? DIGITS : '');
   const glyphs = [...chars.replace(/\s/g, '')];
   return glyphs.length ? glyphs : [...GLYPH_SETS.katakana.chars];
 }

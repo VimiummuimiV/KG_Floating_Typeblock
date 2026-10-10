@@ -88,7 +88,8 @@ const sections = [];
 const subheadings = [];
 const collapsed = new Set();
 
-const isVisible = ({ visibleIf }) => !visibleIf || getSetting(visibleIf[0]) === visibleIf[1];
+// visibleIf: [path, value or list of values]
+const isVisible = ({ visibleIf }) => !visibleIf || [].concat(visibleIf[1]).includes(getSetting(visibleIf[0]));
 
 // Hidden: the condition of the setting is not met, or its section is collapsed.
 // A subheading goes together with the last of its settings.

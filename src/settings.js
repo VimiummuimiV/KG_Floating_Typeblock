@@ -1,5 +1,5 @@
 import { getModeKey } from './game.js';
-import { FALL_OPTIONS, GLYPH_OPTIONS } from './matrix-presets.js';
+import { DIGITS_ADDABLE, FALL_OPTIONS, GLYPH_OPTIONS } from './matrix-presets.js';
 import { clamp, isPlainObject, readStorage, writeStorage } from './utils.js';
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
@@ -29,7 +29,7 @@ export const SCHEMA = {
   'matrix.dimming': number('Затемнение фона', 50, 0, 100, 1, '%'),
   'matrix.fadeIn': number('Плавный набор яркости', 2, 0, 10, 0.5, 'с'),
   'matrix.glyphSet': choice('Набор символов', 'katakana', GLYPH_OPTIONS),
-  'matrix.digits': bool('Добавить цифры', false),
+  'matrix.digits': bool('Добавить цифры', false, { visibleIf: ['matrix.glyphSet', DIGITS_ADDABLE] }),
   'matrix.customGlyphs': text('Свои символы', '', 100, { visibleIf: ['matrix.glyphSet', 'custom'] }),
   'matrix.fallStyle': choice('Стиль падения', 'classic', FALL_OPTIONS),
   'matrix.fontSize': number('Размер символов', 16, 8, 48, 1, 'px'),

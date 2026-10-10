@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KG_Floating_Typeblock
 // @namespace    http://tampermonkey.net/
-// @version      1.2.6
+// @version      1.2.7
 // @description  Floating typing block for Klavogonki: movable/resizable with dimmed backdrop, light/dark themes, line-by-line text, progress bar, speed & errors, configurable matrix rain from game text, settings panel with JSON import/export, help panel.
 // @author       Patcher
 // @match        *://klavogonki.ru/g/?gmid=*
