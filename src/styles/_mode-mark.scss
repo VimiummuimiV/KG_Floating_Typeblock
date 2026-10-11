@@ -1,11 +1,14 @@
 @use 'tokens' as *;
 
+// Distance to the edges follows the corner radius: the dot sits in the visual middle of the rounded corner
+$inset: clamp(6px, calc(var(--kg-radius) * 0.55), 14px);
+
 // Inside the block, above the text line: nothing the user types or reads is covered
 #kg-mode-mark {
   @include important((
     position: absolute,
-    top: 7px,
-    right: 12px,
+    top: $inset,
+    right: $inset,
     z-index: 3,
     width: 6px,
     height: 6px,

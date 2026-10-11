@@ -34,6 +34,7 @@ const REACTIONS = {
     syncLayoutVars();
   },
   dimming: syncLayoutVars,
+  borderRadius: syncLayoutVars,
   mainBlockWidth: refreshLayout,
   mainBlockPosition: refreshLayout,
   fontSize: () => {

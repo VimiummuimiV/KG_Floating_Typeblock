@@ -45,6 +45,7 @@ export function syncLayoutVars() {
     '--kg-main-position': getSetting('mainBlockPosition'),
     '--kg-inset-top': `${insets.top}px`,
     '--kg-inset-bottom': `${insets.bottom}px`,
+    '--kg-radius': `${getSetting('borderRadius')}px`,
     '--kg-font-size': `${getSetting('fontSize')}px`,
     '--kg-input-padding': `${INPUT_PADDING}px`,
     '--kg-elements-filter': getElementsFilter()

@@ -23,6 +23,7 @@ export const SCHEMA = {
   fontSize: number('Размер шрифта', 30, 12, 48, 2, 'px'),
   mainBlockWidth: number('Ширина блока', 50, 20, 95, 0.1, '%'),
   mainBlockPosition: number('Положение блока', 50, 0, 100, 0.1, '%'),
+  borderRadius: number('Скругление углов', 18, 0, 40, 1, 'px'),
   dimming: number('Затемнение фона', 50, 0, 100, 1, '%'),
   matrixEffect: bool('Эффект матрицы', false),
   'matrix.dimming': number('Затемнение фона', 50, 0, 100, 1, '%'),
@@ -49,7 +50,7 @@ export const SECTIONS = [
     id: 'general',
     title: 'Общие',
     fields: [
-      'dimming', 'fontSize', 'mainBlockWidth', 'mainBlockPosition', 'visibleLines'
+      'dimming', 'fontSize', 'mainBlockWidth', 'mainBlockPosition', 'borderRadius', 'visibleLines'
     ]
   },
   {
