@@ -11,4 +11,10 @@
   font-family: 'Quicksand', sans-serif !important;
   font-weight: 600;
   font-size: 1.1em;
+
+  // No room under the block: above its top left corner (the stats pill is centered, they do not meet)
+  &.kg-above {
+    top: -40px !important;
+    bottom: auto !important;
+  }
 }

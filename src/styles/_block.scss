@@ -45,6 +45,7 @@ html.kg-floating {
   #main-block {
     @include important((
       position: fixed,
+      margin: 0,
       width: var(--kg-main-width),
       left: 50%,
       // Own height is part of the position: top edge + position * (free space - own height)

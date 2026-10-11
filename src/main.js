@@ -6,7 +6,7 @@ import {
 } from './floating.js';
 import { openReplay } from './game.js';
 import { helpPanel, setupHelpHover } from './help.js';
-import { showNumericIndicator } from './indicator.js';
+import { placeIndicator, showNumericIndicator } from './indicator.js';
 import { updateMatrixEffect } from './matrix.js';
 import { syncPanelAnchors } from './panel.js';
 import { SCHEMA, getSetting, isSettingsReady, loadSettings, onChange, setSetting } from './settings.js';
@@ -24,6 +24,7 @@ const refreshLayout = () => {
   syncLayoutVars();
   refreshTextView();
   syncPanelAnchors();
+  if (isFloating()) placeIndicator();
 };
 
 // Keyed by the first part of the path: 'matrix.glyphSet' runs REACTIONS.matrix

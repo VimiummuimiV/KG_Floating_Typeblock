@@ -1,22 +1,16 @@
 @use 'tokens' as *;
 
+// Inside the block, above the text line: nothing the user types or reads is covered
 #kg-mode-mark {
   @include important((
     position: absolute,
-    top: -11px,
-    right: 24px,
+    top: 7px,
+    right: 12px,
     z-index: 3,
-    display: flex,
-    padding: 2px 8px,
-    border: 2px solid var(--kg-border-color),
-    border-radius: 999px,
-    background: var(--kg-background),
-    color: var(--kg-text-focus),
-    line-height: 0
+    width: 6px,
+    height: 6px,
+    border-radius: 50%,
+    background: var(--kg-text-after),
+    opacity: 0.6
   ));
-
-  svg {
-    width: 12px;
-    height: 12px;
-  }
 }

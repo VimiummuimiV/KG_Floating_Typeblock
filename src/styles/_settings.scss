@@ -97,7 +97,9 @@
 
       output,
       &-entry {
-        min-width: 48px;
+        flex: none;
+        box-sizing: border-box;
+        width: 56px;
         text-align: right;
         font-weight: bold;
         font-variant-numeric: tabular-nums;
@@ -106,8 +108,6 @@
 
       &-entry {
         @include themed-control;
-        box-sizing: border-box;
-        width: 72px;
         padding: 1px 4px;
         font: inherit;
         appearance: textfield;

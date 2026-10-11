@@ -40,7 +40,7 @@ export function syncLayoutVars() {
   setCssVars({
     '--kg-fade': `${FADE_MS}ms`,
     '--kg-dimming': getSetting(dimmingPath()) / 100,
-    '--kg-main-width': `${getSetting('mainBlockWidth')}vw`,
+    '--kg-main-width': `${getSetting('mainBlockWidth')}%`,
     // 0 is the top edge of the free space, 100 the bottom one: the block never leaves the viewport
     '--kg-main-position': getSetting('mainBlockPosition'),
     '--kg-inset-top': `${insets.top}px`,
@@ -137,7 +137,7 @@ function setupBlockDrag(mainBlock) {
       };
     },
     onMove: (dx, dy, start) => setSettings({
-      mainBlockWidth: start.width + (dx / window.innerWidth) * 100,
+      mainBlockWidth: start.width + (dx / document.documentElement.clientWidth) * 100,
       mainBlockPosition: start.freeSpace > 0 ? start.position + (dy / start.freeSpace) * 100 : start.position
     })
   });
