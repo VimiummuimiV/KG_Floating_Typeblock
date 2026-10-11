@@ -47,8 +47,9 @@ html.kg-floating {
       position: fixed,
       width: var(--kg-main-width),
       left: 50%,
-      top: var(--kg-main-top),
-      transform: translateX(-50%),
+      // Own height is part of the position: top edge + position * (free space - own height)
+      top: calc(var(--kg-inset-top) + var(--kg-main-position) / 100 * (100% - var(--kg-inset-top) - var(--kg-inset-bottom))),
+      transform: translate(-50%, calc(var(--kg-main-position) * -1%)),
       z-index: $z-block,
       pointer-events: auto,
       min-width: 566px,

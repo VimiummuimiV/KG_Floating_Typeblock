@@ -42,7 +42,10 @@ const REACTIONS = {
   visibleLines: refreshTextView,
   isPartialMode: refreshTextView,
   showProgress: updateProgressBar,
-  showStats: updateStats,
+  showStats: () => {
+    updateStats();
+    syncLayoutVars();
+  },
   alignInputWithFocus: alignInput,
   matrixEffect: () => {
     softenBackdrop();

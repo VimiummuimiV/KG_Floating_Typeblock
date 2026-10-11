@@ -10,12 +10,15 @@ import { removeStats, updateStats } from './stats.js';
 import { applyTheme, getElementsFilter } from './theme.js';
 import { refreshTextView } from './text-view.js';
 import {
-  FADE_MS, FLOATING_CLASS, byId, clamp, createElement, createListenerScope, eventHits, formatToggle,
+  FADE_MS, FLOATING_CLASS, byId, createElement, createListenerScope, eventHits, formatToggle,
   isFloating, setCssVars, setImportant
 } from './utils.js';
 
 const DIMMING_SENSITIVITY = 0.5;
 const INPUT_PADDING = 8;
+// The block keeps this distance to the viewport edges; the speed and errors pill above it needs room too
+const VIEWPORT_MARGIN = 8;
+const STATS_RESERVE = 56;
 const READY_CLASS = 'kg-ready';
 const DRAG_IGNORED = ['inputtext', 'kg-stats-wrap'];
 const INLINE_RESET = ['typeblock', 'typetext', 'inputtext', 'inputtextblock', 'typefocus'];
@@ -25,13 +28,23 @@ const floating = { scope: createListenerScope(), backdrop: null, fadeTimer: 0 };
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
+// Space the block leaves free at the top and at the bottom of the viewport
+const getInsets = () => ({
+  top: VIEWPORT_MARGIN + (getSetting('showStats') ? STATS_RESERVE : 0),
+  bottom: VIEWPORT_MARGIN
+});
+
 // Everything the stylesheet needs to know about the current settings
 export function syncLayoutVars() {
+  const insets = getInsets();
   setCssVars({
     '--kg-fade': `${FADE_MS}ms`,
     '--kg-dimming': getSetting(dimmingPath()) / 100,
     '--kg-main-width': `${getSetting('mainBlockWidth')}vw`,
-    '--kg-main-top': `${getSetting('mainBlockPosition')}vh`,
+    // 0 is the top edge of the free space, 100 the bottom one: the block never leaves the viewport
+    '--kg-main-position': getSetting('mainBlockPosition'),
+    '--kg-inset-top': `${insets.top}px`,
+    '--kg-inset-bottom': `${insets.bottom}px`,
     '--kg-font-size': `${getSetting('fontSize')}px`,
     '--kg-input-padding': `${INPUT_PADDING}px`,
     '--kg-elements-filter': getElementsFilter()
@@ -114,19 +127,19 @@ function setupBlockDrag(mainBlock) {
     on: floating.scope.on,
     cursor: 'move',
     canStart: (event) => !DRAG_IGNORED.some((id) => eventHits(event, id)),
-    onStart: () => ({
-      width: getSetting('mainBlockWidth'),
-      top: getSetting('mainBlockPosition'),
-      height: mainBlock.offsetHeight
-    }),
-    onMove: (dx, dy, start) => {
-      const { innerWidth, innerHeight } = window;
-      const maxTop = 100 - (start.height / innerHeight) * 100;
-      setSettings({
-        mainBlockWidth: start.width + (dx / innerWidth) * 100,
-        mainBlockPosition: clamp(start.top + (dy / innerHeight) * 100, 0, maxTop)
-      });
-    }
+    onStart: () => {
+      const insets = getInsets();
+      return {
+        width: getSetting('mainBlockWidth'),
+        position: getSetting('mainBlockPosition'),
+        // Pixels the block can travel: it follows the pointer exactly
+        freeSpace: window.innerHeight - insets.top - insets.bottom - mainBlock.offsetHeight
+      };
+    },
+    onMove: (dx, dy, start) => setSettings({
+      mainBlockWidth: start.width + (dx / window.innerWidth) * 100,
+      mainBlockPosition: start.freeSpace > 0 ? start.position + (dy / start.freeSpace) * 100 : start.position
+    })
   });
 }
 
