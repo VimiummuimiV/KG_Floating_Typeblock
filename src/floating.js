@@ -16,6 +16,8 @@ import {
 
 const DIMMING_SENSITIVITY = 0.5;
 const INPUT_PADDING = 8;
+// The input sits this far inside the corner of the block: its radius is the block one minus the gap (18px -> 12px)
+const INPUT_RADIUS_GAP = 6;
 // The block keeps this distance to the viewport edges; the speed and errors pill above it needs room too
 const VIEWPORT_MARGIN = 8;
 const STATS_RESERVE = 56;
@@ -46,6 +48,7 @@ export function syncLayoutVars() {
     '--kg-inset-top': `${insets.top}px`,
     '--kg-inset-bottom': `${insets.bottom}px`,
     '--kg-radius': `${getSetting('borderRadius')}px`,
+    '--kg-input-radius': `${Math.max(0, getSetting('borderRadius') - INPUT_RADIUS_GAP)}px`,
     '--kg-font-size': `${getSetting('fontSize')}px`,
     '--kg-input-padding': `${INPUT_PADDING}px`,
     '--kg-elements-filter': getElementsFilter()
@@ -70,13 +73,14 @@ export function alignInput() {
 // Values are variables, so the states of the input (error, disabled) are switched by the stylesheet alone.
 function applyInline() {
   const typeBlock = byId('typeblock');
-  if (typeBlock) setImportant(typeBlock, { border: '2px solid var(--kg-border-color)' });
+  if (typeBlock) setImportant(typeBlock, { border: '2px solid var(--kg-border-color)', 'border-radius': 'var(--kg-radius)' });
   const input = byId('inputtext');
   if (!input) return;
   setImportant(input, {
     color: 'var(--kg-input-color)',
     'background-color': 'var(--kg-input-background)',
-    'caret-color': 'var(--kg-input-caret)'
+    'caret-color': 'var(--kg-input-caret)',
+    'border-radius': 'var(--kg-input-radius)'
   });
   // Remove unwanted placeholder value if present and input is disabled
   if (input.classList.contains('disabled')) input.value = '';

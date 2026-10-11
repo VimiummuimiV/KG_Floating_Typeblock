@@ -67,7 +67,6 @@ html.kg-floating {
       position: relative,
       z-index: 2,
       width: 100%,
-      border-radius: var(--kg-radius),
       background-color: var(--kg-background),
       box-shadow: var(--kg-shadow)
     ));
@@ -93,7 +92,6 @@ html.kg-floating {
         border: none,
         margin: 0.5em 0 0,
         padding: var(--kg-input-padding),
-        border-radius: 0.4em,
         outline: none,
         font-size: var(--kg-font-size)
       ));
