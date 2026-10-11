@@ -5,7 +5,7 @@ import { helpPanel } from './help.js';
 import { ICONS } from './icons.js';
 import { SCHEMA, getSetting, hasModeSettings } from './settings.js';
 import { settingsPanel } from './settings-panel.js';
-import { createElement } from './utils.js';
+import { createElement, readStorage, writeStorage } from './utils.js';
 
 const settingToggle = (key, icon) => ({
   icon,
@@ -42,6 +42,8 @@ const resolve = (value) => (typeof value === 'function' ? value() : value);
 // The popup is placed against an anchor rectangle: the pointer is a zero-size one
 const pointAnchor = (x, y) => ({ contains: () => false, getBoundingClientRect: () => new DOMRect(x, y) });
 
+// The menu opens with the row clicked last under the pointer (kept between pages)
+const STORAGE_KEY = 'kg-typeblock-context-menu';
 const rows = [];
 let menu = null;
 
@@ -54,6 +56,7 @@ function createRow(def, index) {
   if (def.isActive) row.append(createElement('span', { className: 'kg-switch' }));
   // A toggle keeps the menu open to flip several in a row, an action closes it
   row.addEventListener('click', () => {
+    writeStorage(STORAGE_KEY, { last: index });
     if (!def.isActive) closePopup();
     def.onClick();
   });
@@ -84,5 +87,5 @@ export const refreshContextMenu = () => rows.forEach(syncRow);
 export function openContextMenu(x, y) {
   if (!menu) build();
   refreshContextMenu();
-  openPopup(pointAnchor(x, y), menu);
+  openPopup(pointAnchor(x, y), menu, () => rows[readStorage(STORAGE_KEY).last]?.row);
 }

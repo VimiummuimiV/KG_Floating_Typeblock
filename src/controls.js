@@ -6,6 +6,8 @@ import { clamp, createElement, isolateKeys } from './utils.js';
 
 const POPUP_GAP = 4;
 const POPUP_MARGIN = 8;
+// A pivot element sits under the anchor this far from the left edge of the popup
+const POPUP_PIVOT_X = 40;
 const HEX_PATTERN = /^#?([0-9a-f]{6})$/i;
 
 // ─── Dragging ────────────────────────────────────────────────────────────────
@@ -52,8 +54,9 @@ export function closePopup() {
   POPUP_LISTENERS.forEach(([target, type, handler]) => target.removeEventListener(type, handler, true));
 }
 
-// Below the anchor, above it when there is no room
-export function openPopup(anchor, content) {
+// Below the anchor, above it when there is no room; with a pivot (returns an element of the content) the popup
+// opens so that the pivot is right under the anchor point
+export function openPopup(anchor, content, pivot) {
   closePopup();
   popup.element ??= document.body.appendChild(createElement('div', { className: 'kg-popup', hidden: true }));
   popup.anchor = anchor;
@@ -65,8 +68,13 @@ export function openPopup(anchor, content) {
   const { offsetWidth: width, offsetHeight: height } = popup.element;
   const below = rect.bottom + POPUP_GAP;
   const fitsBelow = below + height <= window.innerHeight - POPUP_MARGIN;
-  popup.element.style.left = `${clamp(rect.left, POPUP_MARGIN, Math.max(POPUP_MARGIN, window.innerWidth - width - POPUP_MARGIN))}px`;
-  popup.element.style.top = `${fitsBelow ? below : Math.max(POPUP_MARGIN, rect.top - POPUP_GAP - height)}px`;
+  const target = pivot?.();
+  const left = target ? rect.left - POPUP_PIVOT_X : rect.left;
+  const top = target
+    ? clamp(rect.top - popup.element.clientTop - target.offsetTop - target.offsetHeight / 2, POPUP_MARGIN, Math.max(POPUP_MARGIN, window.innerHeight - height - POPUP_MARGIN))
+    : (fitsBelow ? below : Math.max(POPUP_MARGIN, rect.top - POPUP_GAP - height));
+  popup.element.style.left = `${clamp(left, POPUP_MARGIN, Math.max(POPUP_MARGIN, window.innerWidth - width - POPUP_MARGIN))}px`;
+  popup.element.style.top = `${top}px`;
   POPUP_LISTENERS.forEach(([target, type, handler]) => target.addEventListener(type, handler, true));
 }
 
