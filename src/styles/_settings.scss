@@ -4,7 +4,7 @@
   // Width follows the content like the help panel does, but never gets cramped
   @include important((
     white-space: normal,
-    min-width: min(500px, calc(100vw - 2 * var(--kg-panel-margin, 8px)))
+    min-width: min(300px, calc(100vw - 2 * var(--kg-panel-margin, 8px)))
   ));
 
   .kg-settings {
