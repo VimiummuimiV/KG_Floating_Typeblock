@@ -87,5 +87,8 @@ export const refreshContextMenu = () => rows.forEach(syncRow);
 export function openContextMenu(x, y) {
   if (!menu) build();
   refreshContextMenu();
-  openPopup(pointAnchor(x, y), menu, () => rows[readStorage(STORAGE_KEY).last]?.row);
+  const last = rows[readStorage(STORAGE_KEY).last]?.row;
+  // The row clicked last blinks, so it is easy to find when the menu could not be placed right under the pointer
+  rows.forEach(({ row }) => row.classList.toggle('kg-last', row === last));
+  openPopup(pointAnchor(x, y), menu, () => last);
 }

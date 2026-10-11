@@ -14,6 +14,12 @@
   }
 }
 
+@keyframes kg-context-blink {
+  50% {
+    background: color-mix(in srgb, currentColor 22%, transparent);
+  }
+}
+
 // Quick toggles menu (right click on the block), lives inside the shared .kg-popup
 .kg-context {
   width: 250px;
@@ -40,6 +46,13 @@
     &:hover {
       background: color-mix(in srgb, currentColor 10%, transparent);
     }
+  }
+
+  // Blinks twice after the row has slid in
+  &-item.kg-last {
+    animation:
+      kg-context-row 0.2s ease-out calc(var(--kg-index) * 18ms) backwards,
+      kg-context-blink 0.6s ease-in-out 0.4s 2;
   }
 
   &-icon {
