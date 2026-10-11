@@ -1,6 +1,9 @@
 import { SCHEMA, getSetting, setSetting, toggleModeSettings as toggleMode } from './settings.js';
-import { THEME_NAMES } from './theme.js';
 import { byId, createElement, formatToggle } from './utils.js';
+
+// Labels of toggles that are not a plain setting: shared by the toast and the context menu
+export const MODE_SETTINGS_LABEL = 'Настройки режима';
+export const DARK_THEME_LABEL = 'Тёмная тема';
 
 const TOAST_DURATION = 1500;
 let toastTimeout = null;
@@ -22,10 +25,10 @@ export function toggleSetting(key) {
 export function toggleTheme() {
   const next = getSetting('theme') === 'dark' ? 'light' : 'dark';
   setSetting('theme', next);
-  showToast(`Тема: ${THEME_NAMES[next]}`);
+  showToast(formatToggle(DARK_THEME_LABEL, next === 'dark'));
 }
 
 export function toggleModeSettings() {
   const saved = toggleMode();
-  if (saved !== null) showToast(saved ? 'Настройки режима запомнены' : 'Настройки режима забыты');
+  if (saved !== null) showToast(formatToggle(MODE_SETTINGS_LABEL, saved));
 }

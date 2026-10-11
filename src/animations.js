@@ -51,7 +51,5 @@ export function slideVertical(element, direction, from, opts = {}) {
   );
 }
 
-export const hideUp = (element, opts) => slideVertical(element, 'out', 'up', { remove: true, ...opts });
-export const showFromUp = (element, opts) => slideVertical(element, 'in', 'up', opts);
 export const hideDown = (element, opts) => slideVertical(element, 'out', 'down', { remove: true, ...opts });
 export const showFromDown = (element, opts) => slideVertical(element, 'in', 'down', opts);

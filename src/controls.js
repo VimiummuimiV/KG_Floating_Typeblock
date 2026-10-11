@@ -43,7 +43,9 @@ const POPUP_LISTENERS = [
   [window, 'resize', () => closePopup()]
 ];
 
-function closePopup() {
+export const isPopupOpen = () => !!popup.anchor;
+
+export function closePopup() {
   if (!popup.anchor) return;
   popup.element.hidden = true;
   popup.anchor = null;
@@ -51,7 +53,7 @@ function closePopup() {
 }
 
 // Below the anchor, above it when there is no room
-function openPopup(anchor, content) {
+export function openPopup(anchor, content) {
   closePopup();
   popup.element ??= document.body.appendChild(createElement('div', { className: 'kg-popup', hidden: true }));
   popup.anchor = anchor;
@@ -68,17 +70,18 @@ function openPopup(anchor, content) {
   POPUP_LISTENERS.forEach(([target, type, handler]) => target.addEventListener(type, handler, true));
 }
 
-// ─── Checkbox ────────────────────────────────────────────────────────────────
+// ─── Switch ──────────────────────────────────────────────────────────────────
 
-export function createCheckbox(onChange) {
-  const box = createElement('button', { type: 'button', className: 'kg-checkbox' });
-  const set = (value) => box.setAttribute('aria-pressed', value);
-  box.addEventListener('click', () => {
-    const value = box.getAttribute('aria-pressed') !== 'true';
+export function createSwitch(onChange) {
+  const toggle = createElement('button', { type: 'button', className: 'kg-switch' });
+  toggle.setAttribute('role', 'switch');
+  const set = (value) => toggle.setAttribute('aria-checked', value);
+  toggle.addEventListener('click', () => {
+    const value = toggle.getAttribute('aria-checked') !== 'true';
     set(value);
     onChange(value);
   });
-  return { element: box, set };
+  return { element: toggle, set };
 }
 
 // ─── Slider ──────────────────────────────────────────────────────────────────

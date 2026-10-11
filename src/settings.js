@@ -14,10 +14,9 @@ const text = (label, def, maxLength, extra) => ({ type: 'text', label, default: 
 
 export const SCHEMA = {
   theme: choice('Тема', 'dark', { dark: 'тёмная', light: 'светлая' }),
-  showButtons: bool('Панель кнопок', true),
-  autoEnterFloating: bool('Автовход в плавающий режим', true),
+  autoEnterFloating: bool('Автовход', true),
   alignInputWithFocus: bool('Выравнивание ввода', true),
-  isPartialMode: bool('Построчное отображение', false),
+  isPartialMode: bool('Построчно', false),
   visibleLines: number('Видимых строк', 1, 1, 50, 1, '', { visibleIf: ['isPartialMode', true] }),
   showProgress: bool('Прогресс-бар', true),
   showStats: bool('Скорость и ошибки', true),
@@ -44,14 +43,13 @@ export const SCHEMA = {
   'matrix.headColor': color('Цвет «головы»', '#ffffff', { visibleIf: ['matrix.brightHead', true] })
 };
 
-// Layout of the settings panel: a field is a path, { subheading } starts a group inside the section
+// Layout of the settings panel (the quick toggles live in the context menu): a field is a path, { subheading } starts a group inside the section
 export const SECTIONS = [
   {
     id: 'general',
     title: 'Общие',
     fields: [
-      'dimming', 'fontSize', 'mainBlockWidth', 'mainBlockPosition', 'autoEnterFloating',
-      'alignInputWithFocus', 'isPartialMode', 'visibleLines', 'showProgress', 'showStats'
+      'dimming', 'fontSize', 'mainBlockWidth', 'mainBlockPosition', 'visibleLines'
     ]
   },
   {

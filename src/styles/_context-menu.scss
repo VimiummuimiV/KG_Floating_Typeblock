@@ -1,0 +1,70 @@
+@use 'tokens' as *;
+
+@keyframes kg-context-open {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+}
+
+@keyframes kg-context-row {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+
+// Quick toggles menu (right click on the block), lives inside the shared .kg-popup
+.kg-context {
+  width: 250px;
+  transform-origin: top left;
+  animation: kg-context-open 0.16s ease-out;
+
+  &-item {
+    @include control-base;
+    @include focus-ring;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 6px 8px;
+    border: none;
+    border-radius: 0.3em;
+    background: none;
+    color: inherit;
+    text-align: left;
+    white-space: nowrap;
+    animation: kg-context-row 0.2s ease-out backwards;
+    animation-delay: calc(var(--kg-index) * 18ms);
+
+    &:hover {
+      background: color-mix(in srgb, currentColor 10%, transparent);
+    }
+  }
+
+  &-icon {
+    display: flex;
+    flex: none;
+    opacity: 0.55;
+    transition: color 0.2s ease, opacity 0.2s ease;
+  }
+
+  &-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &-divider {
+    height: 1px;
+    margin: 4px 6px;
+    background: var(--kg-border-color);
+  }
+
+  // Lit icon of a switched-on toggle
+  &-item[aria-checked='true'] &-icon {
+    color: var(--kg-text-focus);
+    opacity: 1;
+  }
+}

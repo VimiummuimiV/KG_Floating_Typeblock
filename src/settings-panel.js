@@ -1,5 +1,5 @@
 import { showToast } from './actions.js';
-import { createCheckbox, createColorPicker, createSelect, createSlider } from './controls.js';
+import { createColorPicker, createSelect, createSlider, createSwitch } from './controls.js';
 import { ICONS } from './icons.js';
 import { createPanel } from './panel.js';
 import { SCHEMA, SECTIONS, exportSettings, getSetting, importSettings, isSettingsReady, resetSettings, setSetting } from './settings.js';
@@ -35,7 +35,7 @@ function editExactValue(path, { min, max, step }, output) {
 
 // Every control writes to the settings right away; the change listener refreshes all other controls and the game itself
 const CONTROLS = {
-  bool: (path) => createCheckbox((value) => setSetting(path, value)),
+  bool: (path) => createSwitch((value) => setSetting(path, value)),
 
   number: (path, field) => {
     const slider = createSlider(field, (value) => setSetting(path, value));

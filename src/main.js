@@ -1,10 +1,12 @@
-import { showNumericIndicator, updateButtons } from './buttons.js';
 import { toggleSetting, toggleTheme } from './actions.js';
+import { openContextMenu, refreshContextMenu } from './context-menu.js';
+import { isPopupOpen } from './controls.js';
 import {
   alignInput, enterFloating, exitFloating, softenBackdrop, syncContent, syncLayoutVars, toggleFloating
 } from './floating.js';
 import { openReplay } from './game.js';
 import { helpPanel, setupHelpHover } from './help.js';
+import { showNumericIndicator } from './indicator.js';
 import { updateMatrixEffect } from './matrix.js';
 import { syncPanelAnchors } from './panel.js';
 import { SCHEMA, getSetting, isSettingsReady, loadSettings, onChange, setSetting } from './settings.js';
@@ -29,7 +31,6 @@ const REACTIONS = {
   theme: () => {
     applyTheme();
     syncLayoutVars();
-    updateButtons();
   },
   dimming: syncLayoutVars,
   mainBlockWidth: refreshLayout,
@@ -39,33 +40,19 @@ const REACTIONS = {
     alignInput();
   },
   visibleLines: refreshTextView,
-  isPartialMode: () => {
-    refreshTextView();
-    updateButtons();
-  },
-  showProgress: () => {
-    updateProgressBar();
-    updateButtons();
-  },
-  showStats: () => {
-    updateStats();
-    updateButtons();
-  },
-  alignInputWithFocus: () => {
-    alignInput();
-    updateButtons();
-  },
+  isPartialMode: refreshTextView,
+  showProgress: updateProgressBar,
+  showStats: updateStats,
+  alignInputWithFocus: alignInput,
   matrixEffect: () => {
     softenBackdrop();
     updateMatrixEffect();
     syncLayoutVars();
-    updateButtons();
   },
   matrix: () => {
     updateMatrixEffect();
     syncLayoutVars();
-  },
-  autoEnterFloating: updateButtons
+  }
 };
 
 // Settings were replaced as a whole (import, reset, per-mode snapshot)
@@ -74,7 +61,6 @@ function applyAll() {
   syncLayoutVars();
   updateMatrixEffect();
   syncContent();
-  updateButtons();
 }
 
 function onSettingChange(paths) {
@@ -82,6 +68,7 @@ function onSettingChange(paths) {
   else applyAll();
   helpPanel.refresh();
   settingsPanel.refresh();
+  refreshContextMenu();
 }
 
 // ─── Global listeners (always active) ────────────────────────────────────────
@@ -108,7 +95,8 @@ function onKeydown(event) {
   if (event.ctrlKey && (event.key === 'Enter' || event.code === 'Enter')) openReplay();
   if (!isSettingsReady()) return;
 
-  if (isFloating() && (event.key === 'Escape' || event.key === 'Enter')) {
+  // Escape first closes the open menu (its own handler), only then leaves the floating mode
+  if (isFloating() && !(event.key === 'Escape' && isPopupOpen()) && (event.key === 'Escape' || event.key === 'Enter')) {
     exitFloating();
     return;
   }
@@ -121,13 +109,20 @@ function onKeydown(event) {
 
 // Double click: on the input toggles floating mode, on the text block toggles text view
 function onDblclick(event) {
-  if (eventHits(event, 'kg-stats-wrap') || eventHits(event, 'kg-buttons-wrap')) return;
+  if (eventHits(event, 'kg-stats-wrap')) return;
   const textArea = byId(isFloating() ? 'main-block' : 'typetext');
   if (event.target === byId('inputtext')) toggleFloating();
   else if (isSettingsReady() && textArea?.contains(event.target)) toggleSetting('isPartialMode');
   else return;
   event.preventDefault();
   event.stopPropagation();
+}
+
+// Right click on the block opens the quick menu of toggles
+function onContextMenu(event) {
+  if (!isSettingsReady() || !isFloating() || !byId('main-block')?.contains(event.target)) return;
+  event.preventDefault();
+  openContextMenu(event.clientX, event.clientY);
 }
 
 // Wheel over the text block: Ctrl changes font size (floating), plain changes visible lines
@@ -154,6 +149,7 @@ function setupGlobalListeners() {
   document.body.classList.add('kg-typeblock-registered');
   document.addEventListener('keydown', onKeydown, true);
   document.addEventListener('dblclick', onDblclick);
+  document.addEventListener('contextmenu', onContextMenu);
   document.addEventListener('wheel', onWheel, { passive: false });
   // Capture phase: the site cannot stop these events before we see them
   document.addEventListener('input', () => isSettingsReady() && scheduleProgressUpdate(), true);
@@ -192,7 +188,6 @@ function startObserver() {
         settingsPanel.restore();
       }
       if (getSetting('autoEnterFloating')) enterFloating();
-      updateButtons();
     }
     syncContent();
   };

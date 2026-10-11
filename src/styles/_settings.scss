@@ -15,12 +15,21 @@
       align-items: center;
       justify-content: space-between;
       width: 100%;
-      margin: 14px 0 6px;
+      margin: 12px 0 4px;
+      padding: 6px 8px;
       border: none;
-      border-bottom: 1px solid var(--kg-border-color);
+      border-radius: 0.3em;
       background: none;
+      font-size: 14px;
       font-weight: bold;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       color: var(--kg-help-heading);
+      transition: background 0.15s ease;
+
+      &:hover {
+        background: var(--kg-input-normal-background);
+      }
 
       &::after {
         content: '';

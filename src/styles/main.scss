@@ -29,7 +29,7 @@
   }
 }
 
-// ─── Shared: square button (button bar, panel header) ────────────────────────
+// ─── Shared: square button (panel header, numeric indicator) ────────────────────────
 
 .kg-btn {
   @include important((
@@ -84,7 +84,7 @@
     border: 2px solid var(--kg-border-color),
     border-radius: $radius,
     box-shadow: var(--kg-shadow),
-    padding: 12px 18px,
+    padding: 12px,
     font-size: 15px,
     font-family: $font-ui,
     white-space: pre-line,
@@ -121,9 +121,28 @@
     display: none !important;
   }
 
-  .kg-panel-action:hover {
-    background-color: var(--kg-input-normal-text) !important;
-    color: var(--kg-input-normal-background) !important;
+  // Flat header buttons: no plate and no shadow, only a soft tint on hover
+  .kg-panel-action {
+    @include important((
+      background-color: transparent,
+      box-shadow: none,
+      border-radius: 0.4em,
+      color: var(--kg-text-after),
+      opacity: 0.65
+    ));
+    @include focus-ring;
+    transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+
+    &:hover {
+      @include important((
+        background-color: color-mix(in srgb, currentColor 14%, transparent),
+        opacity: 1
+      ));
+    }
+
+    &.kg-panel-close:hover {
+      @include important((color: var(--kg-help-off)));
+    }
   }
 }
 
@@ -132,4 +151,6 @@
 @include meta.load-css('settings');
 @include meta.load-css('block');
 @include meta.load-css('stats');
-@include meta.load-css('buttons');
+@include meta.load-css('indicator');
+@include meta.load-css('context-menu');
+@include meta.load-css('mode-mark');

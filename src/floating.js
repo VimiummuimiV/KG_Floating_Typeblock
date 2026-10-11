@@ -1,7 +1,9 @@
 import { showToast } from './actions.js';
-import { showNumericIndicator, updateButtons } from './buttons.js';
+import { closePopup } from './controls.js';
 import { createDrag } from './drag.js';
+import { showNumericIndicator } from './indicator.js';
 import { destroyMatrix, updateMatrixEffect } from './matrix.js';
+import { updateModeMark } from './mode-mark.js';
 import { syncPanelAnchors } from './panel.js';
 import { dimmingPath, getSetting, isSettingsReady, loadSettings, setSetting, setSettings } from './settings.js';
 import { removeStats, updateStats } from './stats.js';
@@ -15,7 +17,7 @@ import {
 const DIMMING_SENSITIVITY = 0.5;
 const INPUT_PADDING = 8;
 const READY_CLASS = 'kg-ready';
-const DRAG_IGNORED = ['inputtext', 'kg-stats-wrap', 'kg-buttons-wrap'];
+const DRAG_IGNORED = ['inputtext', 'kg-stats-wrap'];
 const INLINE_RESET = ['typeblock', 'typetext', 'inputtext', 'inputtextblock', 'typefocus'];
 
 // scope: listeners of the floating mode, removed together on exit
@@ -73,6 +75,7 @@ export function syncContent() {
     applyInline();
     alignInput();
     updateStats();
+    updateModeMark();
   }
   refreshTextView();
   syncPanelAnchors();
@@ -141,7 +144,6 @@ export function enterFloating() {
   createBackdrop();
   setupBlockDrag(mainBlock);
   syncContent();
-  updateButtons();
   updateMatrixEffect();
   // Input color transitions are enabled after the first paint
   setTimeout(() => document.documentElement.classList.add(READY_CLASS), 0);
@@ -152,14 +154,15 @@ export function exitFloating() {
   floating.scope.dispose();
   floating.backdrop?.remove();
   floating.backdrop = null;
+  closePopup();
   destroyMatrix();
   byId('kg-numeric-indicator')?.remove();
+  byId('kg-mode-mark')?.remove();
   removeStats();
   // Remove all inline styles of the floating mode for a full reset
   INLINE_RESET.forEach((id) => byId(id)?.removeAttribute('style'));
   document.documentElement.classList.remove(FLOATING_CLASS, READY_CLASS);
   syncLayoutVars();
-  updateButtons();
   // Native mode keeps the line-by-line view and the progress bar
   syncContent();
 }
