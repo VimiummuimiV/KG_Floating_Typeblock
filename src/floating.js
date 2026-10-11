@@ -15,6 +15,8 @@ import {
 } from './utils.js';
 
 const DIMMING_SENSITIVITY = 0.5;
+// A click on the backdrop must not change the dimming: the pointer has to travel this far first
+const DIMMING_DRAG_THRESHOLD = 6;
 const INPUT_PADDING = 8;
 // The input sits this far inside the corner of the block: its radius is the block one minus the gap (18px -> 12px)
 const INPUT_RADIUS_GAP = 6;
@@ -117,8 +119,11 @@ function createBackdrop() {
     on: floating.scope.on,
     onStart: () => ({ level: getSetting(dimmingPath()) }),
     onMove: (dx, dy, start) => {
+      // The change starts from the point where the threshold was crossed, so the value does not jump
+      start.origin ??= Math.abs(dy) >= DIMMING_DRAG_THRESHOLD ? dy : undefined;
+      if (start.origin === undefined) return;
       const path = dimmingPath();
-      setSetting(path, start.level - dy * DIMMING_SENSITIVITY);
+      setSetting(path, start.level - (dy - start.origin) * DIMMING_SENSITIVITY);
       showNumericIndicator(getSetting(path), getSetting('matrixEffect') ? 'Затемнение матрицы' : 'Затемнение фона');
     }
   });
